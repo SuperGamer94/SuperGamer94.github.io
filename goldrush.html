@@ -1,0 +1,2884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gold Rush</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap');
+:root{
+  --bg:#090b0e;--panel:#0f1218;--panel2:#14181f;--border:#222a38;
+  --accent:#f0a500;--accent2:#c06000;--gold:#ffd700;
+  --green:#3ddc84;--red:#ff4455;--blue:#4499ff;
+  --text:#cdd9e5;--text2:#6a7a8a;--cell:40;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;overflow:hidden;height:100vh;width:100vw;user-select:none}
+
+/* MENU */
+#menu{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse at 35% 45%,#180f00 0%,#090b0e 65%);z-index:900}
+#menu::before{content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 39px,#151d28 39px,#151d28 40px),
+             repeating-linear-gradient(90deg,transparent,transparent 39px,#151d28 39px,#151d28 40px);
+  opacity:.25;pointer-events:none}
+.mtitle{font-family:'Orbitron',monospace;font-size:3.8rem;font-weight:900;color:var(--accent);
+  text-shadow:0 0 40px rgba(240,165,0,.5),0 0 80px rgba(240,165,0,.15);letter-spacing:.08em;position:relative;z-index:1}
+.msub{font-family:'Share Tech Mono',monospace;font-size:.8rem;color:var(--text2);letter-spacing:.35em;
+  margin-top:.4rem;position:relative;z-index:1}
+.mpanel{background:rgba(15,18,24,.97);border:1px solid var(--border);border-radius:8px;
+  padding:2rem 2.5rem;margin-top:2.5rem;position:relative;z-index:1;min-width:360px}
+.mpanel h3{font-family:'Orbitron',monospace;font-size:.75rem;color:var(--text2);letter-spacing:.3em;
+  text-transform:uppercase;margin-bottom:1.2rem;text-align:center}
+.time-row{display:flex;gap:.8rem;margin-bottom:1.8rem}
+.tbtn{flex:1;padding:.9rem .5rem;background:var(--panel2);border:2px solid var(--border);border-radius:6px;
+  color:var(--text);font-family:'Orbitron',monospace;font-size:1.1rem;cursor:pointer;transition:all .2s;text-align:center}
+.tbtn:hover,.tbtn.sel{border-color:var(--accent);color:var(--accent);background:rgba(240,165,0,.07);
+  box-shadow:0 0 18px rgba(240,165,0,.12)}
+.tbtn small{display:block;font-family:'Rajdhani',sans-serif;font-size:.7rem;color:var(--text2);margin-top:.15rem}
+.sbtn{width:100%;padding:.9rem;background:linear-gradient(135deg,var(--accent2),var(--accent));
+  border:none;border-radius:6px;color:#000;font-family:'Orbitron',monospace;font-size:.95rem;font-weight:700;
+  letter-spacing:.12em;cursor:pointer;transition:all .2s;text-transform:uppercase}
+.sbtn:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(240,165,0,.35)}
+
+/* GAME */
+#game{display:none;flex-direction:column;height:100vh;width:100vw}
+#hud{height:48px;background:var(--panel);border-bottom:1px solid var(--border);display:flex;
+  align-items:center;padding:0 .8rem;gap:1.5rem;flex-shrink:0;z-index:10}
+.hlogo{font-family:'Orbitron',monospace;font-size:.95rem;font-weight:700;color:var(--accent);letter-spacing:.08em;flex-shrink:0}
+.hstat{display:flex;align-items:center;gap:.4rem;font-family:'Share Tech Mono',monospace;font-size:.8rem;flex-shrink:0}
+.hstat .hl{font-size:.62rem;color:var(--text2);letter-spacing:.1em;text-transform:uppercase}
+.hstat .hv{color:var(--text);font-weight:700}
+.hv.gld{color:var(--gold)}.hv.mn{color:var(--accent)}.hv.tm{color:var(--green)}
+.hdiv{width:1px;height:28px;background:var(--border);flex-shrink:0}
+.hsp{flex:1}
+.waveinfo{display:flex;align-items:center;gap:.5rem;font-family:'Share Tech Mono',monospace;font-size:.75rem}
+.wdot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+.wdot.hot{background:var(--red);animation:fastpulse .45s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+@keyframes fastpulse{0%,100%{opacity:1}50%{opacity:.15}}
+
+#area{display:flex;flex:1;overflow:hidden}
+#bar{width:210px;background:var(--panel);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0}
+#bar::-webkit-scrollbar{width:3px}#bar::-webkit-scrollbar-thumb{background:var(--border)}
+.bsec{padding:.65rem;border-bottom:1px solid var(--border)}
+.bsec-t{font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--text2);
+  letter-spacing:.2em;text-transform:uppercase;margin-bottom:.45rem}
+.bitem{display:flex;align-items:center;gap:.5rem;padding:.4rem .5rem;border-radius:5px;
+  cursor:pointer;transition:all .12s;border:1px solid transparent;margin-bottom:.22rem}
+.bitem:hover{background:var(--panel2);border-color:var(--border)}
+.bitem.act{background:rgba(240,165,0,.09);border-color:var(--accent)}
+.bico{width:28px;height:28px;border-radius:4px;display:flex;align-items:center;
+  justify-content:center;font-size:.95rem;flex-shrink:0}
+.binfo{flex:1;min-width:0}
+.bname{font-size:.8rem;font-weight:600;color:var(--text);white-space:nowrap}
+.bcost{font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--accent)}
+.bsize{font-family:'Share Tech Mono',monospace;font-size:.58rem;color:var(--text2)}
+
+#wrap{flex:1;position:relative;overflow:hidden;cursor:crosshair}
+#gc{position:absolute}
+#mmap{position:absolute;bottom:8px;right:8px;width:150px;height:110px;
+  background:rgba(9,11,14,.92);border:1px solid var(--border);border-radius:4px;overflow:hidden}
+#mc{width:100%;height:100%}
+
+#rp{width:210px;background:var(--panel);border-left:1px solid var(--border);
+  display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+.rpsec{padding:.65rem;border-bottom:1px solid var(--border);flex-shrink:0}
+.rpt{font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--text2);
+  letter-spacing:.2em;text-transform:uppercase;margin-bottom:.55rem}
+.invgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:3px}
+.invsl{aspect-ratio:1;background:var(--panel2);border:1px solid var(--border);border-radius:3px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-size:.85rem;position:relative}
+.invsl .ic{position:absolute;bottom:1px;right:2px;font-family:'Share Tech Mono',monospace;
+  font-size:.45rem;color:var(--text);line-height:1}
+.ulist{display:flex;flex-direction:column;gap:.3rem;max-height:200px;overflow-y:auto}
+.ulist::-webkit-scrollbar{width:3px}.ulist::-webkit-scrollbar-thumb{background:var(--border)}
+.uitem{background:var(--panel2);border:1px solid var(--border);border-radius:4px;
+  padding:.35rem .5rem;font-size:.75rem;display:flex;align-items:center;gap:.4rem}
+.uico{font-size:1rem}.udets{flex:1}.uname{font-weight:600;color:var(--text);font-size:.75rem}
+.utask{color:var(--text2);font-size:.65rem;font-family:'Share Tech Mono',monospace}
+.mbar{height:3px;background:var(--border);border-radius:2px;margin-top:2px;overflow:hidden}
+.mbarf{height:100%;border-radius:2px;transition:width .3s}
+.sprow{display:flex;gap:.4rem;margin-top:.45rem}
+.spbtn{flex:1;padding:.4rem .2rem;background:var(--panel2);border:1px solid var(--border);
+  border-radius:4px;color:var(--text);font-family:'Rajdhani',sans-serif;font-size:.72rem;
+  font-weight:600;cursor:pointer;transition:all .12s;text-align:center}
+.spbtn:hover{border-color:var(--accent);color:var(--accent);background:rgba(240,165,0,.07)}
+.spbtn small{display:block;font-family:'Share Tech Mono',monospace;font-size:.58rem;color:var(--text2)}
+#logwrap{flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:0}
+#loglist{flex:1;overflow-y:auto;padding:.4rem}
+#loglist::-webkit-scrollbar{width:3px}#loglist::-webkit-scrollbar-thumb{background:var(--border)}
+.lent{font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--text2);
+  padding:.18rem 0;border-bottom:1px solid rgba(34,42,56,.3);line-height:1.4}
+.lent.w{color:#ffaa00}.lent.d{color:var(--red)}.lent.s{color:var(--green)}
+
+#notifs{position:fixed;top:58px;right:220px;display:flex;flex-direction:column;
+  gap:.4rem;z-index:50;pointer-events:none}
+.notif{background:rgba(15,18,24,.96);border:1px solid var(--border);border-radius:5px;
+  padding:.5rem .9rem;font-family:'Share Tech Mono',monospace;font-size:.72rem;max-width:280px;
+  animation:sli .25s ease-out,fout .4s 2.6s forwards}
+.notif.d{border-color:var(--red);color:var(--red)}
+.notif.s{border-color:var(--green);color:var(--green)}
+.notif.w{border-color:var(--accent);color:var(--accent)}
+@keyframes sli{from{transform:translateX(16px);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes fout{from{opacity:1}to{opacity:0}}
+
+#wov{position:fixed;top:58px;left:50%;transform:translateX(-50%);
+  background:rgba(255,68,85,.12);border:1px solid var(--red);border-radius:6px;
+  padding:.45rem 1.8rem;font-family:'Orbitron',monospace;font-size:.9rem;color:var(--red);
+  letter-spacing:.08em;z-index:80;display:none;animation:wpulse .5s infinite alternate}
+@keyframes wpulse{from{opacity:.65}to{opacity:1}}
+
+#pbar{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);
+  background:rgba(15,18,24,.92);border:1px solid var(--accent);border-radius:5px;
+  padding:.35rem .9rem;font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--accent);
+  pointer-events:none;z-index:50;display:none}
+
+#go{position:fixed;inset:0;background:rgba(9,11,14,.93);display:none;align-items:center;
+  justify-content:center;flex-direction:column;z-index:500}
+#go h1{font-family:'Orbitron',monospace;font-size:3rem;color:var(--accent);
+  text-shadow:0 0 40px rgba(240,165,0,.4);margin-bottom:1rem}
+.gostats{background:var(--panel);border:1px solid var(--border);border-radius:8px;
+  padding:1.8rem 2.5rem;text-align:center;margin-bottom:1.8rem;min-width:320px}
+.gofm{font-family:'Orbitron',monospace;font-size:2.4rem;color:var(--gold);
+  text-shadow:0 0 18px rgba(255,215,0,.3)}
+.gofl{font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--text2);
+  letter-spacing:.2em;margin-bottom:.35rem}
+.gorow{display:flex;gap:2rem;margin-top:1rem;justify-content:center}
+.gostat{text-align:center}
+.gostat .v{font-family:'Orbitron',monospace;font-size:1.4rem;color:var(--text)}
+.gobtn{padding:.75rem 1.8rem;background:linear-gradient(135deg,var(--accent2),var(--accent));
+  border:none;border-radius:6px;color:#000;font-family:'Orbitron',monospace;font-size:.85rem;
+  font-weight:700;cursor:pointer;letter-spacing:.1em;margin:.3rem;transition:all .2s}
+.gobtn:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(240,165,0,.3)}
+
+#tip{position:fixed;background:rgba(15,18,24,.97);border:1px solid var(--border);border-radius:5px;
+  padding:.55rem .75rem;font-family:'Rajdhani',sans-serif;font-size:.8rem;pointer-events:none;
+  z-index:200;display:none;max-width:190px}
+#tip .tn{font-weight:700;color:var(--text);margin-bottom:.25rem;font-size:.85rem}
+#tip .ti{color:var(--text2);font-size:.72rem;line-height:1.5}
+#tip .tc{color:var(--accent);font-family:'Share Tech Mono',monospace;font-size:.65rem;margin-top:.2rem}
+#compass{position:absolute;bottom:130px;right:12px;width:80px;height:80px;
+  border-radius:50%;background:rgba(9,11,14,.82);border:1px solid rgba(255,255,255,.13);
+  box-shadow:0 2px 12px rgba(0,0,0,.5),inset 0 0 18px rgba(0,0,0,.4);
+  pointer-events:none;z-index:30;overflow:hidden}
+#compass canvas{display:block}
+</style>
+</head>
+<body>
+
+<!-- MAIN MENU -->
+<div id="menu">
+  <div class="mtitle">Gold Rush</div>
+  <div class="msub">MINE · BUILD · DEFEND · PROSPER</div>
+  <div class="mpanel">
+    <h3>Select Duration</h3>
+    <div class="time-row">
+      <div class="tbtn" data-t="30" onclick="pickTime(30)">30<small>min · quick</small></div>
+      <div class="tbtn sel" data-t="60" onclick="pickTime(60)">60<small>min · standard</small></div>
+      <div class="tbtn" data-t="90" onclick="pickTime(90)">90<small>min · marathon</small></div>
+    </div>
+    <button class="sbtn" onclick="startGame()">⚙ LAUNCH OPERATION</button>
+  </div>
+</div>
+
+<!-- GAME -->
+<div id="game">
+  <div id="hud">
+    <div class="hlogo">⛏ Gold Rush</div>
+    <div class="hdiv"></div>
+    <div class="hstat"><span class="hl">Money</span><span class="hv mn" id="hMoney">$0</span></div>
+    <div class="hstat"><span class="hl">Coal</span><span class="hv" id="hCoal">0</span></div>
+    <div class="hstat"><span class="hl">Raw Gold</span><span class="hv gld" id="hRaw">0</span></div>
+    <div class="hstat"><span class="hl">Ref. Gold</span><span class="hv gld" id="hRef">0</span></div>
+    <div class="hsp"></div>
+    <div class="waveinfo">
+      <div class="wdot" id="wdot"></div>
+      <span id="wtext">NEXT WAVE 2:00</span>
+    </div>
+    <div class="hdiv"></div>
+    <div class="hstat"><span class="hl">Wave</span><span class="hv" id="hWave">0</span></div>
+    <div class="hdiv"></div>
+    <div class="hstat"><span class="hl">Time</span><span class="hv tm" id="hTime">--:--</span></div>
+  </div>
+
+  <div id="area">
+    <!-- LEFT BAR -->
+    <div id="bar">
+      <div class="bsec">
+        <div class="bsec-t">Tools</div>
+        <div class="bitem act" id="tool_select" onclick="setMode('select')">
+          <div class="bico" style="background:rgba(68,153,255,.15);color:#4499ff">↖</div>
+          <div class="binfo"><div class="bname">Select / Pan</div><div class="bsize">Inspect blocks</div></div>
+        </div>
+        <div class="bitem" id="tool_demolish" onclick="setMode('demolish')">
+          <div class="bico" style="background:rgba(255,68,85,.15);color:#ff4455">✕</div>
+          <div class="binfo"><div class="bname">Demolish</div><div class="bsize">Full refund</div></div>
+        </div>
+      </div>
+      <div class="bsec">
+        <div class="bsec-t">Defense</div>
+        <div class="bitem" id="pb_wall" onclick="setPlace('wall')">
+          <div class="bico" style="background:rgba(130,130,140,.2);color:#bbb">🧱</div>
+          <div class="binfo"><div class="bname">Wall</div><div class="bcost">$50</div><div class="bsize">1×1 · 2s build</div></div>
+        </div>
+        <div class="bitem" id="pb_turret" onclick="setPlace('turret')">
+          <div class="bico" style="background:rgba(20,50,20,.4);color:#88ff44">🔫</div>
+          <div class="binfo"><div class="bname">Turret</div><div class="bcost">$250</div><div class="bsize">1×1 · auto-fires · coal ammo · 8s</div></div>
+        </div>
+        <div class="bitem" id="pb_ammoDep" onclick="setPlace('ammoDep')">
+          <div class="bico" style="background:rgba(30,50,10,.4);color:#aadd55">📦</div>
+          <div class="binfo"><div class="bname">Ammo Depot</div><div class="bcost">$200</div><div class="bsize">2×2 · 2× turret fire rate nearby · 10s</div></div>
+        </div>
+      </div>
+      <div class="bsec">
+        <div class="bsec-t">Units & Housing</div>
+        <div class="bitem" id="pb_camp" onclick="setPlace('camp')">
+          <div class="bico" style="background:rgba(40,80,20,.35);color:#88cc44">⛺</div>
+          <div class="binfo"><div class="bname">Camp</div><div class="bcost">$400</div><div class="bsize">3×3 · +8 unit cap · 15s</div></div>
+        </div>
+      </div>
+      <div class="bsec">
+        <div class="bsec-t">Mining</div>
+        <div class="bitem" id="pb_coalDrill" onclick="setPlace('coalDrill')">
+          <div class="bico" style="background:rgba(80,80,85,.3);color:#aaa">⛏</div>
+          <div class="binfo"><div class="bname">Coal Drill</div><div class="bcost">$100</div><div class="bsize">2×2 · 6s · On coal</div></div>
+        </div>
+        <div class="bitem" id="pb_goldDrill" onclick="setPlace('goldDrill')">
+          <div class="bico" style="background:rgba(200,160,30,.2);color:#d4a820">⛏</div>
+          <div class="binfo"><div class="bname">Gold Drill</div><div class="bcost">$200</div><div class="bsize">2×2 · 8s · On gold</div></div>
+        </div>
+      </div>
+      <div class="bsec">
+        <div class="bsec-t">Logistics</div>
+        <div class="bitem" id="pb_track" onclick="setPlace('track')">
+          <div class="bico" style="background:rgba(100,75,45,.35);color:#c09060">═</div>
+          <div class="binfo"><div class="bname">Track</div><div class="bcost">$20</div><div class="bsize">1×1 · 1s build</div></div>
+        </div>
+        <div class="bitem" id="pb_splitter" onclick="setPlace('splitter')">
+          <div class="bico" style="background:rgba(60,40,100,.4);color:#aa88ff">⑂</div>
+          <div class="binfo"><div class="bname">Splitter</div><div class="bcost">$60</div><div class="bsize">1×1 · 50/50 split · 2s</div></div>
+        </div>
+        <div class="bitem" id="pb_merger" onclick="setPlace('merger')">
+          <div class="bico" style="background:rgba(20,60,80,.4);color:#44aadd">⑁</div>
+          <div class="binfo"><div class="bname">Merger</div><div class="bcost">$60</div><div class="bsize">1×1 · 3-to-1 merge · 2s</div></div>
+        </div>
+        <div class="bitem" id="pb_pipeIn" onclick="setPlace('pipeIn')">
+          <div class="bico" style="background:rgba(10,50,80,.4);color:#44bbff">▶</div>
+          <div class="binfo"><div class="bname">Pipe In</div><div class="bcost">$80</div><div class="bsize">1×1 · teleport in · 2s</div></div>
+        </div>
+        <div class="bitem" id="pb_pipeOut" onclick="setPlace('pipeOut')">
+          <div class="bico" style="background:rgba(10,50,80,.4);color:#44bbff">◀</div>
+          <div class="binfo"><div class="bname">Pipe Out</div><div class="bcost">$80</div><div class="bsize">1×1 · teleport out · 2s</div></div>
+        </div>
+        <div class="bitem" id="pb_unloader" onclick="setPlace('unloader')">
+          <div class="bico" style="background:rgba(200,130,40,.18);color:#f08040">▼</div>
+          <div class="binfo"><div class="bname">Unloader</div><div class="bcost">$80</div><div class="bsize">1×1 · 3s build</div></div>
+        </div>
+        <div class="bitem" id="pb_loader" onclick="setPlace('loader')">
+          <div class="bico" style="background:rgba(60,120,220,.18);color:#5599ff">▲</div>
+          <div class="binfo"><div class="bname">Loader</div><div class="bcost">$80</div><div class="bsize">1×1 · 3s build</div></div>
+        </div>
+        <div class="bitem" id="pb_chest" onclick="setPlace('chest')">
+          <div class="bico" style="background:rgba(120,80,40,.3);color:#b07040">📦</div>
+          <div class="binfo"><div class="bname">Chest</div><div class="bcost">$60</div><div class="bsize">1×1 · 2s build</div></div>
+        </div>
+      </div>
+      <div class="bsec">
+        <div class="bsec-t">Processing</div>
+        <div class="bitem" id="pb_furnace" onclick="setPlace('furnace')">
+          <div class="bico" style="background:rgba(240,80,20,.2);color:#f06030">🔥</div>
+          <div class="binfo"><div class="bname">Furnace</div><div class="bcost">$300</div><div class="bsize">2×2 · 5s/gold · needs coal</div></div>
+        </div>
+        <div class="bitem" id="pb_bank" onclick="setPlace('bank')">
+          <div class="bico" style="background:rgba(255,215,0,.18);color:#ffd700">🏦</div>
+          <div class="binfo"><div class="bname">Bank</div><div class="bcost">$500</div><div class="bsize">3×3 · 20s build</div></div>
+        </div>
+        <div class="bitem" id="pb_goldVault" onclick="setPlace('goldVault')">
+          <div class="bico" style="background:rgba(220,180,0,.2);color:#eebb00">🏛</div>
+          <div class="binfo"><div class="bname">Gold Vault</div><div class="bcost">$400</div><div class="bsize">2×2 · $5/s per refined gold stored</div></div>
+        </div>
+      </div>
+      <div class="bsec">
+        <div class="bsec-t">Actions</div>
+        <div class="bitem" onclick="rotateTool()">
+          <div class="bico" style="background:rgba(61,220,132,.1);color:#3ddc84">↻</div>
+          <div class="binfo"><div class="bname">Rotate [R]</div><div class="bsize">N→E→S→W</div></div>
+        </div>
+      </div>
+      <div class="bsec" style="font-family:'Share Tech Mono',monospace;font-size:.58rem;color:var(--text2);line-height:1.9">
+        <div class="bsec-t">Hotkeys</div>
+        <div>[R] Rotate tool</div>
+        <div>[ESC] Select mode</div>
+        <div>[D] Demolish mode</div>
+        <div>[↑↓←→] Pan camera</div>
+        <div>[RMB/MMB] Pan camera</div>
+        <div>[Scroll] Zoom in/out</div>
+        <div>[Drag LMB] Place many</div>
+      </div>
+    </div>
+
+    <!-- CANVAS -->
+    <div id="wrap">
+      <canvas id="gc"></canvas>
+      <div id="mmap"><canvas id="mc"></canvas></div>
+      <div id="compass"><canvas id="cc" width="80" height="80"></canvas></div>
+      <div id="pbar"></div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div id="rp">
+      <div class="rpsec">
+        <div class="rpt">Inventory</div>
+        <div class="invgrid" id="invgrid"></div>
+      </div>
+      <div class="rpsec">
+        <div class="rpt">Units (<span id="ucnt">0</span> / <span id="ucap">8</span>)</div>
+        <div class="ulist" id="ulist"></div>
+        <div class="sprow">
+          <button class="spbtn" onclick="spawnUnit('soldier')">⚔ Soldier<small>$150</small></button>
+          <button class="spbtn" onclick="spawnUnit('builder')">🔨 Builder<small>$100</small></button>
+          <button class="spbtn" onclick="spawnUnit('banker')">💰 Banker<small>$200</small></button>
+          <button class="spbtn" onclick="spawnUnit('scout')">👁 Scout<small>$120</small></button>
+          <button class="spbtn" onclick="spawnUnit('medic')">➕ Medic<small>$175</small></button>
+        </div>
+        <div id="capmsg" style="font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--text2);text-align:center;margin-top:.3rem;display:none">⛺ Build a Camp for +8 slots</div>
+      </div>
+      <div class="rpsec" id="logwrap">
+        <div class="rpt">Event Log</div>
+        <div id="loglist"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- OVERLAYS -->
+<div id="wov">⚠ ENEMY WAVE INCOMING!</div>
+<div id="notifs"></div>
+<div id="tip"><div class="tn" id="ttn"></div><div class="ti" id="tti"></div><div class="tc" id="ttc"></div></div>
+<div id="go">
+  <h1>TIME'S UP</h1>
+  <div class="gostats">
+    <div class="gofl">TOTAL EARNINGS</div>
+    <div class="gofm" id="goMoney">$0</div>
+    <div class="gorow">
+      <div class="gostat"><div class="gofl">WAVES</div><div class="v" id="goWave">0</div></div>
+      <div class="gostat"><div class="gofl">BUILT</div><div class="v" id="goBuilt">0</div></div>
+      <div class="gostat"><div class="gofl">ENEMIES</div><div class="v" id="goKills">0</div></div>
+    </div>
+  </div>
+  <div>
+    <button class="gobtn" onclick="restartGame()">↺ PLAY AGAIN</button>
+    <button class="gobtn" onclick="location.reload()">⌂ MAIN MENU</button>
+  </div>
+</div>
+
+<script>
+// ==========================================================
+// CONSTANTS
+// ==========================================================
+const CELL   = 40;
+const WW     = 120;  // world width in cells
+const WH     = 80;   // world height in cells
+const T_SAND = 0, T_COAL = 1, T_GOLD = 2;
+
+const BDEFS = {
+  wall:      {name:'Wall',       ico:'🧱', cost:50,  size:1, col:'#4a5060', hp:300, buildTime:2},
+  coalDrill: {name:'Coal Drill', ico:'⛏',  cost:100, size:2, col:'#3a3c42', hp:150, needT:T_COAL, buildTime:6},
+  goldDrill: {name:'Gold Drill', ico:'⛏',  cost:200, size:2, col:'#4a3c0a', hp:150, needT:T_GOLD, needFuel:true, buildTime:8},
+  track:     {name:'Track',      ico:'═',  cost:20,  size:1, col:'#3a2810', hp:60,  buildTime:1},
+  splitter:  {name:'Splitter',   ico:'⑂',  cost:60,  size:1, col:'#2a2040', hp:60,  buildTime:2},
+  merger:    {name:'Merger',     ico:'⑁',  cost:60,  size:1, col:'#1a3040', hp:60,  buildTime:2},
+  pipeIn:    {name:'Pipe In',    ico:'▶',  cost:80,  size:1, col:'#0a2a3a', hp:80,  buildTime:2},
+  pipeOut:   {name:'Pipe Out',   ico:'◀',  cost:80,  size:1, col:'#0a2a3a', hp:80,  buildTime:2},
+  unloader:  {name:'Unloader',   ico:'▼',  cost:80,  size:1, col:'#402010', hp:80,  buildTime:3},
+  loader:    {name:'Loader',     ico:'▲',  cost:80,  size:1, col:'#10204a', hp:80,  buildTime:3},
+  chest:     {name:'Chest',      ico:'📦', cost:60,  size:1, col:'#3a2508', hp:120, cap:50, buildTime:2},
+  furnace:   {name:'Furnace',    ico:'🔥', cost:300, size:2, col:'#3a1000', hp:200, needFuel:true, buildTime:12},
+  turret:    {name:'Turret',     ico:'🔫', cost:250, size:1, col:'#1a2810', hp:180, buildTime:8},
+  ammoDep:   {name:'Ammo Depot', ico:'📦', cost:200, size:2, col:'#1e2a10', hp:150, buildTime:10},
+  goldVault: {name:'Gold Vault', ico:'🏛', cost:400, size:2, col:'#2a2200', hp:300, buildTime:14},
+  bank:      {name:'Bank',       ico:'🏦', cost:500, size:3, col:'#2a2500', hp:400, buildTime:20},
+  camp:      {name:'Camp',       ico:'⛺', cost:400, size:3, col:'#2a3a18', hp:250, buildTime:15, unitCap:8},
+};
+
+const BASE_UNIT_CAP = 8; // starting cap with no camps
+
+function maxUnits(){
+  let cap = BASE_UNIT_CAP;
+  for(const [,b] of G.blocks) if(b.type==='camp') cap += BDEFS.camp.unitCap;
+  return cap;
+}
+
+// Returns the world-center {wx,wy} of the nearest camp block to a unit, or spawn if none
+function nearestCampPos(u){
+  let best=null, bestD=Infinity;
+  for(const [,b] of G.blocks){
+    if(b.type!=='camp') continue;
+    const cx=b.gx+b.size/2, cy=b.gy+b.size/2;
+    const d=Math.hypot(cx-u.wx, cy-u.wy);
+    if(d<bestD){ bestD=d; best={wx:cx,wy:cy}; }
+  }
+  return best || {wx:G.spawnX, wy:G.spawnY};
+}
+const DIR_NAMES  = ['N','E','S','W'];
+const DIR_DX     = [0,1,0,-1];
+const DIR_DY     = [-1,0,1,0];
+
+// ==========================================================
+// STATE
+// ==========================================================
+let G; // global game state
+
+function newState(dur){
+  return {
+    dur:     dur*60,
+    elapsed: 0,
+    lt:      null,
+    running: false,
+
+    terrain:   [],   // [y][x] = T_SAND/T_COAL/T_GOLD
+    bGrid:     [],   // [y][x] = block obj | null  (all occupied cells)
+    blocks:    new Map(), // id → block
+
+    money:      5000,
+    inv:        {coal:0, rawGold:0, refinedGold:0},
+
+    units:      [],
+    uid:        1,
+
+    enemies:    [],
+    eid:        1,
+
+    projs:      [],  // {sx,sy,ex,ey,t,life}
+
+    waveNum:    0,
+    waveTimer:  120,
+    waveActive: false,
+    kills:      0,
+    totalBuilt: 0,
+
+    btimers:    new Map(), // blockId → accum seconds
+
+    buildOrders: [], // pending construction sites waiting for a builder
+    attackedBlock: null, // most recently hit block — soldiers rush here
+
+    // camera (in world-pixel space)
+    camX: 0, camY: 0, zoom: 1,
+
+    // input
+    mode:       'select', // select|demolish|place
+    placeType:  null,
+    placeDir:   0, // 0=N 1=E 2=S 3=W
+    mx: 0, my: 0, // mouse screen coords
+    cell: {x:-1,y:-1},
+    panning: false,
+    panSX:0, panSY:0, panCX:0, panCY:0,
+
+    spawnX: Math.floor(WW/2),
+    spawnY: Math.floor(WH/2),
+  };
+}
+
+// ==========================================================
+// WORLD GEN
+// ==========================================================
+function genWorld(){
+  G.terrain = Array.from({length:WH},()=>new Array(WW).fill(T_SAND));
+  G.bGrid   = Array.from({length:WH},()=>new Array(WW).fill(null));
+
+  const place=(type,count,rMin,rMax)=>{
+    for(let i=0;i<count;i++){
+      const cx=Math.floor(Math.random()*WW);
+      const cy=Math.floor(Math.random()*WH);
+      const r=rMin+Math.floor(Math.random()*(rMax-rMin+1));
+      for(let dy=-r;dy<=r;dy++){
+        for(let dx=-r;dx<=r;dx++){
+          if(dx*dx+dy*dy > r*r*(0.6+Math.random()*0.5)) continue;
+          const nx=cx+dx,ny=cy+dy;
+          if(nx>=0&&ny>=0&&nx<WW&&ny<WH) G.terrain[ny][nx]=type;
+        }
+      }
+    }
+  };
+
+  place(T_COAL,28,2,5);
+  place(T_GOLD,16,2,4);
+
+  // Clear spawn zone
+  for(let dy=-6;dy<=6;dy++)
+    for(let dx=-6;dx<=6;dx++){
+      const nx=G.spawnX+dx,ny=G.spawnY+dy;
+      if(nx>=0&&ny>=0&&nx<WW&&ny<WH) G.terrain[ny][nx]=T_SAND;
+    }
+}
+
+// ==========================================================
+// BLOCK PLACEMENT
+// ==========================================================
+function canPlace(type,gx,gy){
+  const d=BDEFS[type];
+  const s=d.size;
+  if(gx<0||gy<0||gx+s>WW||gy+s>WH) return {ok:false,msg:'Out of bounds'};
+  if(G.money<d.cost) return {ok:false,msg:'Not enough money ($'+d.cost+' needed)'};
+  for(let dy=0;dy<s;dy++)
+    for(let dx=0;dx<s;dx++)
+      if(G.bGrid[gy+dy][gx+dx]) return {ok:false,msg:'Space occupied'};
+  // Also check existing build orders don't overlap
+  for(const o of G.buildOrders){
+    const os=o.size;
+    if(gx<o.gx+os && gx+s>o.gx && gy<o.gy+os && gy+s>o.gy)
+      return {ok:false,msg:null}; // silent — blueprint already visible
+  }
+  if(d.needT!==undefined){
+    let found=false;
+    outer: for(let dy=0;dy<s;dy++)
+      for(let dx=0;dx<s;dx++)
+        if(G.terrain[gy+dy][gx+dx]===d.needT){found=true;break outer;}
+    if(!found) return {ok:false,msg:'Must be on '+(d.needT===T_COAL?'coal':'gold')+' ore'};
+  }
+  return {ok:true};
+}
+
+// Creates a build order (blueprint ghost) — builder will walk there and construct it
+function placeBlock(type,gx,gy,dir){
+  const r=canPlace(type,gx,gy);
+  if(!r.ok){if(r.msg)showNotif(r.msg,'d');return false;}
+  const d=BDEFS[type];
+  // Deduct money immediately (reserved)
+  G.money-=d.cost;
+  updateHUD();
+
+  const order={
+    id:'o'+(Date.now())+''+Math.random().toString(36).slice(2,6),
+    type, gx, gy, dir:dir||0, size:d.size,
+    buildTime: d.buildTime,
+    buildProgress: 0,   // seconds completed
+    assignedBuilder: null, // unit id working on this
+  };
+  G.buildOrders.push(order);
+  addLog('📐 '+d.name+' queued ('+d.buildTime+'s build)','');
+  return true;
+}
+
+// Actually finalize a build order into a real block (called when builder finishes)
+function finalizeOrder(order){
+  const d=BDEFS[order.type];
+  const b={
+    id:'b'+(Date.now())+''+Math.random().toString(36).slice(2,6),
+    type:order.type, gx:order.gx, gy:order.gy, dir:order.dir, size:order.size,
+    hp:d.hp, maxHp:d.hp,
+    inv:{coal:0,rawGold:0,refinedGold:0},
+    fuel:0,
+    active:false,
+  };
+  G.blocks.set(b.id,b);
+  for(let dy=0;dy<d.size;dy++)
+    for(let dx=0;dx<d.size;dx++)
+      G.bGrid[order.gy+dy][order.gx+dx]=b;
+  G.totalBuilt++;
+  updateHUD();
+  addLog('✅ '+d.name+' built!','s');
+}
+
+// Cancel a build order (called by demolish on a blueprint or if order is somehow invalid)
+function cancelOrder(order){
+  G.money+=BDEFS[order.type].cost; // full refund
+  // If a builder was assigned, free them
+  if(order.assignedBuilder){
+    const u=G.units.find(u=>u.id===order.assignedBuilder);
+    if(u){ u.buildOrder=null; u.task='Idle'; u.state='idle'; }
+  }
+  G.buildOrders.splice(G.buildOrders.indexOf(order),1);
+  updateHUD();
+}
+
+function demolish(b){
+  for(let dy=0;dy<b.size;dy++)
+    for(let dx=0;dx<b.size;dx++)
+      if(G.bGrid[b.gy+dy]&&G.bGrid[b.gy+dy][b.gx+dx]===b)
+        G.bGrid[b.gy+dy][b.gx+dx]=null;
+  G.blocks.delete(b.id);
+  G.btimers.delete(b.id);
+  G.money+=BDEFS[b.type].cost; // full refund
+  updateHUD();
+}
+
+// Check if a cell is covered by a build order (for demolish in place mode)
+function orderAtCell(gx,gy){
+  for(const o of G.buildOrders){
+    if(gx>=o.gx && gx<o.gx+o.size && gy>=o.gy && gy<o.gy+o.size) return o;
+  }
+  return null;
+}
+
+// ==========================================================
+// LOGISTICS ENGINE — DIRECTIONAL BFS ROUTING
+// ==========================================================
+// How it works:
+//   • Each Unloader has a direction (N/E/S/W) — it pulls from
+//     the block on its INPUT side and ejects items onto the track
+//     on its OUTPUT side (opposite of input, i.e. same as dir arrow).
+//   • Items are real objects that travel cell-by-cell along tracks.
+//     At each track cell they look at neighbours and pick the one
+//     that continues in the same general direction (or any valid
+//     track/loader cell not yet visited).
+//   • When an item reaches a Loader cell it is delivered into
+//     the adjacent block on the Loader's OUTPUT side.
+//   • BFS path is pre-computed when item is created and cached
+//     on the item itself.  Paths are found from unloader-exit cell
+//     to the nearest reachable loader cell using BFS.
+
+let trackItems = []; // live items on tracks
+
+// Direction helpers
+// dir: 0=N 1=E 2=S 3=W
+const OPP = [2,3,0,1]; // opposite direction
+
+function cellInDir(x, y, dir){
+  return {x: x+DIR_DX[dir], y: y+DIR_DY[dir]};
+}
+
+function isTrackLike(b){
+  return b && (b.type==='track'||b.type==='loader'||b.type==='unloader');
+}
+
+// BFS from (sx,sy) to find path ending at a loader cell.
+// Returns array of {x,y} cells or null if no path found.
+function bfsToLoader(sx, sy, fromDir){
+  // fromDir = direction we came FROM (so we don't go back)
+  const visited = new Set();
+  const start = {x:sx, y:sy, path:[{x:sx,y:sy}], fromDir};
+  const queue = [start];
+  visited.add(`${sx},${sy}`);
+
+  while(queue.length){
+    const cur = queue.shift();
+    // Check all 4 neighbours
+    for(let d=0;d<4;d++){
+      if(d === OPP[cur.fromDir]) continue; // never backtrack
+      const nx = cur.x+DIR_DX[d];
+      const ny = cur.y+DIR_DY[d];
+      if(nx<0||ny<0||nx>=WW||ny>=WH) continue;
+      const key=`${nx},${ny}`;
+      if(visited.has(key)) continue;
+      const nb = G.bGrid[ny][nx];
+      if(!nb) continue;
+      if(nb.type==='track'||nb.type==='loader'||nb.type==='splitter'||nb.type==='merger'){
+        visited.add(key);
+        const newPath=[...cur.path,{x:nx,y:ny}];
+        if(nb.type==='loader'){
+          return newPath; // found a loader
+        }
+        queue.push({x:nx,y:ny,path:newPath,fromDir:d});
+      }
+    }
+  }
+  return null; // no loader reachable
+}
+
+// Spawn a travelling item from an unloader's output cell
+function spawnItem(unloader, itemType){
+  // Unloader's output is the cell in its dir direction
+  const exitX = unloader.gx + DIR_DX[unloader.dir];
+  const exitY = unloader.gy + DIR_DY[unloader.dir];
+  if(exitX<0||exitY<0||exitX>=WW||exitY>=WH) return false;
+  const exitCell = G.bGrid[exitY][exitX];
+  if(!exitCell||(!['track','splitter','merger'].includes(exitCell.type))) return false;
+
+  // BFS to nearest loader (don't go back into the unloader)
+  const comeFrom = OPP[unloader.dir]; // we came from this direction relative to exitCell
+  const path = bfsToLoader(exitX, exitY, comeFrom);
+  if(!path) return false; // no loader found — item stays buffered
+
+  trackItems.push({
+    id: Math.random(),
+    type: itemType,
+    path,
+    pathIdx: 0,
+    progress: 0, // 0→1 across current cell to next
+  });
+  return true;
+}
+
+// Advance all travelling items
+function tickItems(dt){
+  const speed = 1.5; // cells per second
+  for(let i=trackItems.length-1;i>=0;i--){
+    const item = trackItems[i];
+    item.progress += dt * speed;
+    while(item.progress >= 1){
+      item.progress -= 1;
+      item.pathIdx++;
+      if(item.pathIdx >= item.path.length){
+        // Item fell off end — discard
+        trackItems.splice(i,1);
+        break;
+      }
+      const cell = item.path[item.pathIdx];
+      const b = G.bGrid[cell.y]?.[cell.x];
+      if(b && b.type==='loader'){
+        // Deliver to the block on the loader's output side
+        const outX = b.gx + DIR_DX[b.dir];
+        const outY = b.gy + DIR_DY[b.dir];
+        if(outX>=0&&outY>=0&&outX<WW&&outY<WH){
+          const dst = G.bGrid[outY][outX];
+          if(dst && dst !== b) deliverToBlock(dst, item.type);
+        }
+        trackItems.splice(i,1);
+        break;
+      }
+      if(b && b.type==='splitter'){
+        // Splitter: two outputs are b.dir and (b.dir+2)%4 (opposite pair perpendicular to input)
+        // Toggle which output this item takes
+        b._splitToggle = b._splitToggle === undefined ? 0 : 1 - b._splitToggle;
+        const outSides = [b.dir, (b.dir+2)%4];
+        const chosen = outSides[b._splitToggle];
+        const ox = b.gx + DIR_DX[chosen];
+        const oy = b.gy + DIR_DY[chosen];
+        if(ox>=0&&oy>=0&&ox<WW&&oy<WH){
+          const outCell = G.bGrid[oy][ox];
+          if(outCell && (outCell.type==='track'||outCell.type==='loader'||outCell.type==='splitter')){
+            const comeFrom = OPP[chosen];
+            const newPath = bfsToLoader(ox, oy, comeFrom);
+            if(newPath){
+              item.path = newPath;
+              item.pathIdx = 0;
+              item.progress = 0;
+              break;
+            }
+          }
+        }
+        // Fallback: try the other side
+        const alt = outSides[1 - b._splitToggle];
+        const ax2 = b.gx + DIR_DX[alt];
+        const ay2 = b.gy + DIR_DY[alt];
+        if(ax2>=0&&ay2>=0&&ax2<WW&&ay2<WH){
+          const altCell = G.bGrid[ay2][ax2];
+          if(altCell && (altCell.type==='track'||altCell.type==='loader'||altCell.type==='splitter')){
+            const newPath = bfsToLoader(ax2, ay2, OPP[alt]);
+            if(newPath){ item.path=newPath; item.pathIdx=0; item.progress=0; break; }
+          }
+        }
+        // No valid output — discard
+        trackItems.splice(i,1);
+        break;
+      }
+      if(b && b.type==='merger'){
+        // Merger: funnel any incoming item out through b.dir
+        const ox=b.gx+DIR_DX[b.dir], oy=b.gy+DIR_DY[b.dir];
+        if(ox>=0&&oy>=0&&ox<WW&&oy<WH){
+          const outCell=G.bGrid[oy][ox];
+          if(outCell&&(outCell.type==='track'||outCell.type==='loader'||outCell.type==='splitter'||outCell.type==='merger')){
+            const newPath=bfsToLoader(ox,oy,OPP[b.dir]);
+            if(newPath){item.path=newPath;item.pathIdx=0;item.progress=0;break;}
+          }
+        }
+        trackItems.splice(i,1);
+        break;
+      }
+    }
+  }
+}
+
+function deliverToBlock(b, it){
+  if(it==='coal' && (b.type==='goldDrill'||b.type==='furnace')){
+    b.fuel = (b.fuel||0) + 12;
+  } else if(it==='coal' && b.type==='turret'){
+    b.inv.coal = Math.min((b.inv.coal||0)+8, 64); // turret ammo
+  } else if(b.type==='pipeOut'){
+    // pipeOut acts like a chest — items sit here for loader pickup
+    b.inv[it] = Math.min((b.inv[it]||0)+1, 200);
+  } else {
+    b.inv[it] = Math.min((b.inv[it]||0)+1, 200);
+  }
+}
+
+function totalInv(inv){return (inv.coal||0)+(inv.rawGold||0)+(inv.refinedGold||0);}
+
+function tickLogistics(dt){
+  for(const [,b] of G.blocks) tickBlock(b, dt);
+  tickItems(dt);
+}
+
+function tickBlock(b, dt){
+  let acc = (G.btimers.get(b.id)||0) + dt;
+
+  if(b.type==='coalDrill'){
+    if(acc >= 3){
+      acc -= 3;
+      let onCoal=false;
+      for(let dy=0;dy<b.size&&!onCoal;dy++)
+        for(let dx=0;dx<b.size&&!onCoal;dx++)
+          if(G.terrain[b.gy+dy][b.gx+dx]===T_COAL) onCoal=true;
+      if(onCoal){
+        b.active=true;
+        if(!pushOutput(b,'coal')) b.inv.coal=Math.min(b.inv.coal+1,200);
+      }
+    }
+  }
+  else if(b.type==='goldDrill'){
+    if(b.fuel>0){
+      b.fuel-=dt;
+      if(acc>=4){
+        acc-=4;
+        let onGold=false;
+        for(let dy=0;dy<b.size&&!onGold;dy++)
+          for(let dx=0;dx<b.size&&!onGold;dx++)
+            if(G.terrain[b.gy+dy][b.gx+dx]===T_GOLD) onGold=true;
+        if(onGold){
+          b.active=true;
+          if(!pushOutput(b,'rawGold')) b.inv.rawGold=Math.min(b.inv.rawGold+1,200);
+        }
+      }
+    } else { b.active=false; }
+  }
+  else if(b.type==='furnace'){
+    if(b.fuel>0 && b.inv.rawGold>0){
+      b.fuel-=dt;
+      if(acc>=5){
+        acc-=5;
+        b.inv.rawGold--;
+        b.active=true;
+        if(!pushOutput(b,'refinedGold')) b.inv.refinedGold=Math.min(b.inv.refinedGold+1,200);
+      }
+    } else { b.active=false; }
+  }
+  else if(b.type==='turret'){
+    b._range = 7;
+    // Check for adjacent ammo depot — halve fire cooldown
+    let hasDepot=false;
+    for(const nb of adjBlocks(b)) if(nb.type==='ammoDep') hasDepot=true;
+    const fireCooldown = hasDepot ? 0.7 : 1.5;
+    if((b.inv.coal||0)>0){
+      b.active=true;
+      let nearest=null, nearD=Infinity;
+      for(const e of G.enemies){
+        const d=Math.hypot(e.wx-(b.gx+0.5), e.wy-(b.gy+0.5));
+        if(d<b._range&&d<nearD){nearD=d;nearest=e;}
+      }
+      if(nearest){
+        if(acc>=fireCooldown){
+          acc-=fireCooldown;
+          b.inv.coal--;
+          nearest.hp-=40;
+          G.projs.push({sx:b.gx+0.5,sy:b.gy+0.5,ex:nearest.wx+0.5,ey:nearest.wy+0.5,t:0,life:0.25,fromTurret:true});
+          if(nearest.hp<=0) killEnemy(nearest);
+        }
+      }
+    } else { b.active=false; }
+  }
+  else if(b.type==='pipeIn'){
+    // Pull items into the pipe network every 1.5s — teleport to paired pipeOut
+    if(acc>=1.5){
+      acc-=1.5;
+      const inDir=OPP[b.dir];
+      const inX=b.gx+DIR_DX[inDir], inY=b.gy+DIR_DY[inDir];
+      if(inX>=0&&inY>=0&&inX<WW&&inY<WH){
+        const src=G.bGrid[inY][inX];
+        if(src&&src!==b&&src.type!=='track'&&src.type!=='loader'&&src.type!=='unloader'){
+          const items=['rawGold','refinedGold','coal'];
+          for(const it of items){
+            if((src.inv[it]||0)>0){
+              src.inv[it]--;
+              // Find nearest connected pipeOut (BFS through pipes)
+              const dest=findPipeOut(b);
+              if(dest){
+                dest.inv[it]=Math.min((dest.inv[it]||0)+1,200);
+              } else {
+                src.inv[it]++; // no output, return item
+              }
+              break;
+            }
+          }
+        }
+      }
+    }
+  }
+  else if(b.type==='ammoDep'){
+    // Boosts adjacent turrets: every 3s, double-load the nearest turret's ammo
+    if(acc>=3){
+      acc-=3;
+      b.active=false;
+      for(const nb of adjBlocks(b)){
+        if(nb.type==='turret'){
+          nb.inv.coal=Math.min((nb.inv.coal||0)+4, 64);
+          b.active=true;
+        }
+      }
+    }
+  }
+  else if(b.type==='goldVault'){
+    // Passive income: $5 per second per refined gold stored (up to cap 50)
+    if(acc>=1){
+      acc-=1;
+      const stored=Math.min(b.inv.refinedGold||0, 50);
+      if(stored>0){
+        G.money+=stored*5;
+        b.active=true;
+        updateHUD();
+      } else { b.active=false; }
+    }
+  }
+  else if(b.type==='bank'){
+    if(b.inv.refinedGold>0 && acc>=2){
+      acc-=2;
+      b.inv.refinedGold--;
+      // Banker units near the bank multiply income
+      let bonus=1;
+      for(const u of G.units){
+        if(u.role==='banker'){
+          const dx=u.wx-(b.gx+b.size/2), dy=u.wy-(b.gy+b.size/2);
+          if(Math.hypot(dx,dy)<b.size+2) bonus+=0.5; // each nearby banker adds +50%
+        }
+      }
+      const earned=Math.round(100*bonus);
+      G.money+=earned;
+      b.active=true;
+      updateHUD();
+    } else if(!b.inv.refinedGold){ b.active=false; }
+  }
+  else if(b.type==='unloader'){
+    // Pull from the block on the unloader's INPUT side (opposite of dir)
+    if(acc>=0.8){
+      acc-=0.8;
+      const inDir = OPP[b.dir];
+      const inX = b.gx + DIR_DX[inDir];
+      const inY = b.gy + DIR_DY[inDir];
+      if(inX>=0&&inY>=0&&inX<WW&&inY<WH){
+        const src = G.bGrid[inY][inX];
+        if(src && src!==b && src.type!=='track' && src.type!=='loader' && src.type!=='unloader'){
+          const items=['rawGold','refinedGold','coal'];
+          for(const it of items){
+            if((src.inv[it]||0)>0){
+              src.inv[it]--;
+              const sent = spawnItem(b, it);
+              if(!sent) src.inv[it]++; // put it back if no route
+              break;
+            }
+          }
+        }
+      }
+    }
+  }
+  // loader is passive — items arrive and deliver themselves in tickItems
+  // chest is passive storage — items are delivered into it by loaders
+
+  G.btimers.set(b.id, acc);
+}
+
+// Push output: find adjacent unloader facing away from block → spawn item
+function pushOutput(b, it){
+  // Look around all border cells for an unloader whose INPUT side faces this block
+  const s = b.size;
+  for(let i=0;i<4;i++){
+    for(let along=0;along<s;along++){
+      let ux,uy;
+      if(i===0){ux=b.gx+along;uy=b.gy-1;}
+      else if(i===1){ux=b.gx+s;uy=b.gy+along;}
+      else if(i===2){ux=b.gx+along;uy=b.gy+s;}
+      else{ux=b.gx-1;uy=b.gy+along;}
+      if(ux<0||uy<0||ux>=WW||uy>=WH) continue;
+      const nb = G.bGrid[uy][ux];
+      if(nb && nb.type==='unloader'){
+        // Check: unloader's input side (OPP[nb.dir]) points back toward block
+        const inDir = OPP[nb.dir];
+        const checkX = nb.gx + DIR_DX[inDir];
+        const checkY = nb.gy + DIR_DY[inDir];
+        const checkB = (checkX>=0&&checkY>=0&&checkX<WW&&checkY<WH) ? G.bGrid[checkY][checkX] : null;
+        if(checkB === b){
+          const sent = spawnItem(nb, it);
+          if(sent) return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+function adjBlocks(b){
+  const s=b.size;
+  const seen=new Set();
+  const result=[];
+  for(let i=0;i<4;i++){
+    for(let along=0;along<s;along++){
+      let cx,cy;
+      if(i===0){cx=b.gx+along;cy=b.gy-1;}
+      else if(i===1){cx=b.gx+s;cy=b.gy+along;}
+      else if(i===2){cx=b.gx+along;cy=b.gy+s;}
+      else{cx=b.gx-1;cy=b.gy+along;}
+      if(cx<0||cy<0||cx>=WW||cy>=WH) continue;
+      const nb=G.bGrid[cy][cx];
+      if(nb&&nb!==b&&!seen.has(nb.id)){seen.add(nb.id);result.push(nb);}
+    }
+  }
+  return result;
+}
+
+// BFS to find a pipeOut block reachable from a pipeIn (teleport destination)
+function findPipeOut(startPipe){
+  const visited=new Set([startPipe.id]);
+  const queue=[startPipe];
+  while(queue.length){
+    const cur=queue.shift();
+    for(let d=0;d<4;d++){
+      const nx=cur.gx+DIR_DX[d], ny=cur.gy+DIR_DY[d];
+      if(nx<0||ny<0||nx>=WW||ny>=WH) continue;
+      const nb=G.bGrid[ny][nx];
+      if(!nb||visited.has(nb.id)) continue;
+      visited.add(nb.id);
+      if(nb.type==='pipeOut') return nb;
+      if(nb.type==='pipeIn') queue.push(nb); // can chain through multiple pipeIns
+    }
+  }
+  return null;
+}
+function makeUnit(role, wx, wy){
+  const isSoldier = role==='soldier';
+  const isbanker  = role==='banker';
+  const isScout   = role==='scout';
+  const isMedic   = role==='medic';
+  return {
+    id: G.uid++, role,
+    wx, wy,
+    vx: wx, vy: wy,
+    angle: Math.random()*Math.PI*2,
+    bobTimer: Math.random()*Math.PI*2,
+    flashTimer: 0,
+    hp:    isSoldier ? 100 : isbanker ? 50 : isScout ? 45 : isMedic ? 70 : 60,
+    maxHp: isSoldier ? 100 : isbanker ? 50 : isScout ? 45 : isMedic ? 70 : 60,
+    spd:   isSoldier ? 1.8 : isScout ? 3.2 : 1.2,
+    range: isSoldier ? 200 : 0,
+    dmg:   isSoldier ? 30  : 0,
+    atTimer: 0,
+    state: 'idle',
+    task:  'Idle',
+    patAngle: Math.random()*Math.PI*2,
+    patTimer: 0,
+  };
+}
+
+function spawnUnit(role){
+  const cost = role==='soldier' ? 150 : role==='banker' ? 200 : role==='scout' ? 120 : role==='medic' ? 175 : 100;
+  const cap=maxUnits();
+  if(G.units.length>=cap){
+    showNotif('Unit cap reached ('+cap+'). Build a Camp for +8 slots!','d');
+    return;
+  }
+  if(G.money<cost){showNotif('Need $'+cost,'d');return;}
+  G.money-=cost;
+  const base = G.units.length>0
+    ? nearestCampPos({wx:G.spawnX,wy:G.spawnY})
+    : {wx:G.spawnX,wy:G.spawnY};
+  const a=Math.random()*Math.PI*2, r=1.5;
+  G.units.push(makeUnit(role, base.wx+Math.cos(a)*r, base.wy+Math.sin(a)*r));
+  updateHUD();
+  const ico = role==='soldier'?'⚔':role==='banker'?'💰':role==='scout'?'👁':role==='medic'?'➕':'🔨';
+  addLog(ico+' '+role+' deployed ('+G.units.length+'/'+cap+')','s');
+}
+
+function tickUnits(dt){
+  for(let i=G.units.length-1;i>=0;i--){
+    const u=G.units[i];
+    if(u.hp<=0){G.units.splice(i,1);addLog('💀 '+u.role+' KIA','d');continue;}
+
+    // Tick visual position (smooth lerp toward logical position)
+    const lerpSpd = 8 * dt;
+    u.vx += (u.wx - u.vx) * Math.min(1, lerpSpd);
+    u.vy += (u.wy - u.vy) * Math.min(1, lerpSpd);
+
+    // Update facing angle toward movement direction
+    const mvDx = u.wx - u.vx, mvDy = u.wy - u.vy;
+    if(Math.abs(mvDx) + Math.abs(mvDy) > 0.01){
+      u.angle = Math.atan2(mvDy, mvDx);
+    }
+
+    // Bob and flash timers
+    u.bobTimer = (u.bobTimer || 0) + dt * (u.state === 'idle' ? 1.5 : 3.0);
+    if(u.flashTimer > 0) u.flashTimer -= dt;
+
+    if(u.role==='soldier') tickSoldier(u,dt);
+    else if(u.role==='banker') tickBanker(u,dt);
+    else if(u.role==='scout') tickScout(u,dt);
+    else if(u.role==='medic') tickMedic(u,dt);
+    else tickBuilder(u,dt);
+  }
+}
+
+function tickSoldier(u,dt){
+  // Find closest enemy in range
+  let nearest=null,nearD=Infinity;
+  for(const e of G.enemies){
+    const d=Math.hypot(e.wx-u.wx,e.wy-u.wy);
+    if(d<u.range/CELL&&d<nearD){nearD=d;nearest=e;}
+  }
+
+  if(nearest){
+    u.state='combat';u.task='Fighting';
+    u.angle=Math.atan2(nearest.wy-u.wy, nearest.wx-u.wx);
+    u.atTimer-=dt;
+    if(u.atTimer<=0){
+      u.atTimer=1.2;
+      nearest.hp-=u.dmg;
+      G.projs.push({sx:u.wx+.5,sy:u.wy+.5,ex:nearest.wx+.5,ey:nearest.wy+.5,t:0,life:.35});
+      if(nearest.hp<=0){killEnemy(nearest);}
+    }
+    return;
+  }
+
+  // No enemy in range — check if any block is being attacked
+  const ab = G.attackedBlock;
+  if(ab && G.blocks.has(ab.id)){
+    const tx = ab.gx + ab.size/2;
+    const ty = ab.gy + ab.size/2;
+    const dist = Math.hypot(tx-u.wx, ty-u.wy);
+
+    if(dist > u.range/CELL * 0.7){
+      // Rush toward the threatened block
+      u.state='combat'; u.task='Responding!';
+      const spd = u.spd * 1.6 * dt; // move faster when responding
+      u.angle = Math.atan2(ty-u.wy, tx-u.wx);
+      u.wx += (tx-u.wx)/dist * spd;
+      u.wy += (ty-u.wy)/dist * spd;
+    } else {
+      // Close enough — scan for any enemy nearby even outside normal range
+      let closestEnemy=null, closestD=Infinity;
+      for(const e of G.enemies){
+        const d=Math.hypot(e.wx-u.wx,e.wy-u.wy);
+        if(d<closestD){closestD=d;closestEnemy=e;}
+      }
+      if(closestEnemy){
+        u.state='combat'; u.task='Engaging!';
+        u.angle=Math.atan2(closestEnemy.wy-u.wy, closestEnemy.wx-u.wx);
+        u.atTimer-=dt;
+        if(u.atTimer<=0){
+          u.atTimer=1.2;
+          closestEnemy.hp-=u.dmg;
+          G.projs.push({sx:u.wx+.5,sy:u.wy+.5,ex:closestEnemy.wx+.5,ey:closestEnemy.wy+.5,t:0,life:.35});
+          if(closestEnemy.hp<=0){killEnemy(closestEnemy);}
+        }
+      } else {
+        u.state='idle'; u.task='On guard';
+      }
+    }
+    return;
+  }
+
+  // Nothing to respond to — patrol near nearest camp
+  u.state='idle';u.task='Patrolling';
+  u.patTimer-=dt;
+  if(u.patTimer<=0){
+    u.patTimer=1.5+Math.random()*2;
+    u.patAngle+=(.5-Math.random())*2;
+    const camp=nearestCampPos(u);
+    const r=2+Math.random()*3;
+    const nx=camp.wx+Math.cos(u.patAngle)*r;
+    const ny=camp.wy+Math.sin(u.patAngle)*r;
+    u.angle=Math.atan2(ny-u.wy, nx-u.wx);
+    u.wx=nx; u.wy=ny;
+  }
+}
+
+function tickBanker(u,dt){
+  // Find nearest bank block and walk to it
+  let nearestBank=null, nearestBankD=Infinity;
+  for(const [,b] of G.blocks){
+    if(b.type!=='bank') continue;
+    const bx=b.gx+b.size/2, by=b.gy+b.size/2;
+    const d=Math.hypot(bx-u.wx, by-u.wy);
+    if(d<nearestBankD){ nearestBankD=d; nearestBank=b; }
+  }
+  if(nearestBank){
+    const tx=nearestBank.gx+nearestBank.size/2;
+    const ty=nearestBank.gy+nearestBank.size/2;
+    const dist=Math.hypot(tx-u.wx,ty-u.wy);
+    if(dist>1.2){
+      u.task='Heading to Bank'; u.state='idle';
+      const spd=u.spd*dt;
+      u.angle=Math.atan2(ty-u.wy,tx-u.wx);
+      u.wx+=(tx-u.wx)/dist*spd;
+      u.wy+=(ty-u.wy)/dist*spd;
+    } else {
+      u.task='Working Bank (+50%)'; u.state='work';
+    }
+  } else {
+    // No bank yet — wander near camp
+    u.task='Idle'; u.state='idle';
+    u.patTimer=(u.patTimer||0)-dt;
+    if(u.patTimer<=0){
+      u.patTimer=2+Math.random()*3;
+      u.patAngle=(u.patAngle||0)+(.5-Math.random())*2;
+      const camp=nearestCampPos(u);
+      const r=1+Math.random()*2;
+      const nx=camp.wx+Math.cos(u.patAngle)*r;
+      const ny=camp.wy+Math.sin(u.patAngle)*r;
+      u.angle=Math.atan2(ny-u.wy,nx-u.wx);
+      u.wx=nx; u.wy=ny;
+    }
+  }
+}
+
+function tickBuilder(u,dt){
+  // === Priority 1: work on an assigned build order ===
+  if(u.buildOrder){
+    const order = G.buildOrders.find(o=>o.id===u.buildOrder);
+    if(!order){
+      // Order was cancelled or completed
+      u.buildOrder=null; u.task='Idle'; u.state='idle'; return;
+    }
+    // Walk to center of build site
+    const tx = order.gx + order.size/2;
+    const ty = order.gy + order.size/2;
+    const dist = Math.hypot(tx-u.wx, ty-u.wy);
+    if(dist > order.size*0.9){
+      // Still walking there
+      u.task='Walking to site'; u.state='idle';
+      const spd=u.spd*dt;
+      u.angle=Math.atan2(ty-u.wy, tx-u.wx);
+      u.wx+=(tx-u.wx)/dist*spd;
+      u.wy+=(ty-u.wy)/dist*spd;
+    } else {
+      // Building!
+      u.task='Building '+BDEFS[order.type].name; u.state='work';
+      u.angle=Math.atan2(ty-u.wy, tx-u.wx);
+      order.buildProgress+=dt;
+      if(order.buildProgress>=order.buildTime){
+        // Finished — create the block
+        finalizeOrder(order);
+        G.buildOrders.splice(G.buildOrders.indexOf(order),1);
+        u.buildOrder=null;
+        u.task='Done!'; u.state='idle';
+      }
+    }
+    return;
+  }
+
+  // === Priority 2: claim an unassigned build order ===
+  let nearestOrder=null, nearestOrderDist=Infinity;
+  for(const o of G.buildOrders){
+    if(o.assignedBuilder && o.assignedBuilder!==u.id) continue; // taken by another builder
+    const tx=o.gx+o.size/2, ty=o.gy+o.size/2;
+    const d=Math.hypot(tx-u.wx, ty-u.wy);
+    if(d<nearestOrderDist){ nearestOrderDist=d; nearestOrder=o; }
+  }
+  if(nearestOrder){
+    nearestOrder.assignedBuilder=u.id;
+    u.buildOrder=nearestOrder.id;
+    u.task='Heading to site'; u.state='idle';
+    return;
+  }
+
+  // === Priority 3: repair most damaged block ===
+  let worst=null, worstR=1;
+  for(const [,b] of G.blocks){
+    const r=b.hp/b.maxHp;
+    if(r<worstR){ worstR=r; worst=b; }
+  }
+  if(worst){
+    u.task='Repairing'; u.state='work';
+    const tx=(worst.gx+worst.size/2), ty=(worst.gy+worst.size/2);
+    const dist=Math.hypot(tx-u.wx, ty-u.wy);
+    if(dist>1.2){
+      const spd=u.spd*dt;
+      u.angle=Math.atan2(ty-u.wy, tx-u.wx);
+      u.wx+=(tx-u.wx)/dist*spd;
+      u.wy+=(ty-u.wy)/dist*spd;
+    } else {
+      worst.hp=Math.min(worst.maxHp, worst.hp+15*dt);
+    }
+    return;
+  }
+
+  // === Idle: wander near nearest camp ===
+  u.task='Idle'; u.state='idle';
+  u.patTimer=(u.patTimer||0)-dt;
+  if(u.patTimer<=0){
+    u.patTimer=2+Math.random()*3;
+    u.patAngle=(u.patAngle||0)+(.5-Math.random())*2.5;
+    const camp=nearestCampPos(u);
+    const r=1.5+Math.random()*2;
+    const nx=camp.wx+Math.cos(u.patAngle)*r;
+    const ny=camp.wy+Math.sin(u.patAngle)*r;
+    u.angle=Math.atan2(ny-u.wy, nx-u.wx);
+    u.wx=nx; u.wy=ny;
+  }
+}
+
+function tickScout(u,dt){
+  // Scout: fast, patrols wide area, reveals map (visual), flees combat
+  // If enemies are close, sprint away
+  let flee=null, fleeD=Infinity;
+  for(const e of G.enemies){
+    const d=Math.hypot(e.wx-u.wx, e.wy-u.wy);
+    if(d<4&&d<fleeD){fleeD=d;flee=e;}
+  }
+  if(flee){
+    u.task='Fleeing!'; u.state='idle';
+    const ang=Math.atan2(u.wy-flee.wy, u.wx-flee.wx);
+    u.wx+=Math.cos(ang)*u.spd*dt*1.5;
+    u.wy+=Math.sin(ang)*u.spd*dt*1.5;
+    u.angle=ang;
+    u.wx=Math.max(0,Math.min(WW-1,u.wx));
+    u.wy=Math.max(0,Math.min(WH-1,u.wy));
+    return;
+  }
+
+  // Otherwise: patrol far from spawn, wide sweeping loops
+  u.task='Scouting'; u.state='idle';
+  u._scoutAngle=(u._scoutAngle||Math.random()*Math.PI*2);
+  u._scoutTimer=(u._scoutTimer||0)-dt;
+  if(u._scoutTimer<=0){
+    u._scoutTimer=1.5+Math.random()*2;
+    u._scoutAngle+=0.8+Math.random()*1.2;
+    const r=8+Math.random()*12;
+    u._scoutTX=Math.max(2,Math.min(WW-2, G.spawnX+Math.cos(u._scoutAngle)*r));
+    u._scoutTY=Math.max(2,Math.min(WH-2, G.spawnY+Math.sin(u._scoutAngle)*r));
+  }
+  if(u._scoutTX!==undefined){
+    const dist=Math.hypot(u._scoutTX-u.wx, u._scoutTY-u.wy);
+    if(dist>0.5){
+      const spd=u.spd*dt;
+      u.angle=Math.atan2(u._scoutTY-u.wy, u._scoutTX-u.wx);
+      u.wx+=(u._scoutTX-u.wx)/dist*spd;
+      u.wy+=(u._scoutTY-u.wy)/dist*spd;
+    }
+  }
+  // Warn if enemies nearby (even if not in range of soldiers)
+  for(const e of G.enemies){
+    if(Math.hypot(e.wx-u.wx, e.wy-u.wy)<6){
+      u.task='⚠ Enemy spotted!';
+      // Alert soldiers
+      if(!G.attackedBlock) G.scoutAlert={wx:e.wx,wy:e.wy,timer:3};
+      break;
+    }
+  }
+}
+
+function tickMedic(u,dt){
+  // Medic: find most wounded friendly unit, walk to them, heal over time
+  let target=null, targetPriority=-1;
+  for(const other of G.units){
+    if(other.id===u.id) continue;
+    const missing=other.maxHp-other.hp;
+    const dist=Math.hypot(other.wx-u.wx, other.wy-u.wy);
+    const priority=missing - dist*2; // prefer close and wounded
+    if(missing>5 && priority>targetPriority){targetPriority=priority;target=other;}
+  }
+  if(target){
+    u.task='Healing '+target.role; u.state='work';
+    const dist=Math.hypot(target.wx-u.wx, target.wy-u.wy);
+    if(dist>1.0){
+      const spd=u.spd*dt;
+      u.angle=Math.atan2(target.wy-u.wy, target.wx-u.wx);
+      u.wx+=(target.wx-u.wx)/dist*spd;
+      u.wy+=(target.wy-u.wy)/dist*spd;
+    } else {
+      u.angle=Math.atan2(target.wy-u.wy, target.wx-u.wx);
+      target.hp=Math.min(target.maxHp, target.hp+25*dt); // 25 HP/s heal rate
+      // Healing sparkle stored on unit
+      target._healTimer=(target._healTimer||0)+dt;
+    }
+    return;
+  }
+  // Idle: follow nearest soldier
+  u.task='Ready to heal'; u.state='idle';
+  let nearSoldier=null, nearD=Infinity;
+  for(const other of G.units){
+    if(other.role!=='soldier') continue;
+    const d=Math.hypot(other.wx-u.wx, other.wy-u.wy);
+    if(d<nearD){nearD=d;nearSoldier=other;}
+  }
+  if(nearSoldier&&nearD>2){
+    const spd=u.spd*dt;
+    const dist=nearD;
+    u.angle=Math.atan2(nearSoldier.wy-u.wy, nearSoldier.wx-u.wx);
+    u.wx+=(nearSoldier.wx-u.wx)/dist*spd;
+    u.wy+=(nearSoldier.wy-u.wy)/dist*spd;
+  } else {
+    // Wander near camp
+    u.patTimer=(u.patTimer||0)-dt;
+    if(u.patTimer<=0){
+      u.patTimer=2+Math.random()*3;
+      const camp=nearestCampPos(u);
+      const r=1.5+Math.random()*2;
+      const ang=Math.random()*Math.PI*2;
+      u.wx=camp.wx+Math.cos(ang)*r; u.wy=camp.wy+Math.sin(ang)*r;
+    }
+  }
+}
+function killEnemy(e){
+  const i=G.enemies.indexOf(e);
+  if(i>=0){
+    G.enemies.splice(i,1);G.kills++;
+    const reward=e.eType==='brute'?60:e.eType==='speeder'?8:15;
+    G.money+=reward;updateHUD();
+  }
+}
+
+// ==========================================================
+// ENEMIES
+// ==========================================================
+function spawnWave(){
+  G.waveNum++;G.waveActive=true;
+  document.getElementById('wov').style.display='block';
+  document.getElementById('wdot').classList.add('hot');
+  addLog('⚠ WAVE '+G.waveNum+' ATTACKING!','d');
+  showNotif('⚠ WAVE '+G.waveNum,'d');
+
+  // Base stats scale with wave
+  const baseHp=60+G.waveNum*25;
+  const baseSpd=0.5+G.waveNum*0.04;
+  const baseDmg=8+G.waveNum*4;
+  const baseN=Math.min(5+G.waveNum*4, 80);
+
+  // Composition changes over time
+  // Wave 1-2: pure grunts
+  // Wave 3+: mix in speeders
+  // Wave 5+: add brutes
+  const gruntN = G.waveNum >= 5 ? Math.floor(baseN*0.5) : G.waveNum >= 3 ? Math.floor(baseN*0.7) : baseN;
+  const speederN = G.waveNum >= 3 ? Math.floor(baseN * Math.min(0.35, 0.1*(G.waveNum-2))) : 0;
+  const bruteN = G.waveNum >= 5 ? Math.max(1, Math.floor(G.waveNum*0.4)) : 0;
+
+  let delay=0;
+  const spawn=(type)=>{
+    setTimeout(()=>{
+      if(!G.running) return;
+      const edge=Math.floor(Math.random()*4);
+      let wx,wy;
+      if(edge===0){wx=Math.random()*WW;wy=0;}
+      else if(edge===1){wx=WW-1;wy=Math.random()*WH;}
+      else if(edge===2){wx=Math.random()*WW;wy=WH-1;}
+      else{wx=0;wy=Math.random()*WH;}
+
+      if(type==='grunt'){
+        G.enemies.push({id:G.eid++,wx,wy,hp:baseHp,maxHp:baseHp,
+          spd:baseSpd+(.3-Math.random()*.6)*.1,dmg:baseDmg,atTimer:0,eType:'grunt'});
+      } else if(type==='speeder'){
+        const shp=Math.floor(baseHp*0.3);
+        G.enemies.push({id:G.eid++,wx,wy,hp:shp,maxHp:shp,
+          spd:baseSpd*2.8,dmg:Math.floor(baseDmg*0.4),atTimer:0,eType:'speeder'});
+      } else if(type==='brute'){
+        const bhp=Math.floor(baseHp*5);
+        G.enemies.push({id:G.eid++,wx,wy,hp:bhp,maxHp:bhp,
+          spd:baseSpd*0.4,dmg:Math.floor(baseDmg*3),atTimer:0,eType:'brute',
+          _smashTimer:0});
+      }
+    }, delay);
+    delay+=type==='brute'?600:300;
+  };
+
+  for(let i=0;i<gruntN;i++) spawn('grunt');
+  for(let i=0;i<speederN;i++) spawn('speeder');
+  for(let i=0;i<bruteN;i++) spawn('brute');
+
+  // Log composition hint
+  const parts=[];
+  if(gruntN>0) parts.push(gruntN+' Grunts');
+  if(speederN>0) parts.push(speederN+' Speeders');
+  if(bruteN>0) parts.push(bruteN+' Brutes');
+  addLog('  Composition: '+parts.join(', '),'');
+}
+
+function tickEnemies(dt){
+  for(let i=G.enemies.length-1;i>=0;i--){
+    const e=G.enemies[i];
+    if(e.hp<=0){G.enemies.splice(i,1);continue;}
+
+    const isBrute=e.eType==='brute';
+    const isSpeeder=e.eType==='speeder';
+
+    // Target selection
+    let tx=G.spawnX,ty=G.spawnY,td=Infinity;
+    for(const [,b] of G.blocks){
+      const bx=b.gx+b.size*.5,by=b.gy+b.size*.5;
+      const d=Math.hypot(bx-e.wx,by-e.wy);
+      let priority;
+      if(isBrute){
+        // Brutes ignore walls, head straight for banks/drills/furnaces
+        priority=b.type==='bank'||b.type==='furnace'||b.type==='goldVault'?0.5:
+                 b.type==='wall'?2.0:1.0;
+      } else if(isSpeeder){
+        // Speeders target production buildings
+        priority=b.type==='coalDrill'||b.type==='goldDrill'||b.type==='furnace'?0.6:
+                 b.type==='wall'?1.2:1.0;
+      } else {
+        // Grunts: prefer walls then banks
+        priority=b.type==='wall'?0.8:b.type==='bank'||b.type==='furnace'?1:1.5;
+      }
+      if(d*priority<td){td=d*priority;tx=bx;ty=by;}
+    }
+
+    const dist=Math.hypot(tx-e.wx,ty-e.wy);
+    if(dist>0.6){
+      const spd=e.spd*dt;
+      e.wx+=(tx-e.wx)/dist*spd;
+      e.wy+=(ty-e.wy)/dist*spd;
+    }
+
+    // Attack
+    e.atTimer-=dt;
+    const attackRate = isBrute ? 1.5 : isSpeeder ? 0.6 : 1.0;
+    if(e.atTimer<=0){
+      e.atTimer=attackRate;
+      let hit=null,hitD=Infinity;
+      for(const [,b] of G.blocks){
+        const bx=b.gx+b.size*.5,by=b.gy+b.size*.5;
+        const d=Math.hypot(bx-e.wx,by-e.wy);
+        if(d<b.size*.8+.8&&d<hitD){hitD=d;hit=b;}
+      }
+      if(hit){
+        hit.hp-=e.dmg;
+        G.attackedBlock=hit;
+        if(isBrute && hit.type==='wall'){
+          hit.hp-=e.dmg*2; // brutes smash walls extra hard
+        }
+        if(hit.hp<=0){addLog('🧱 '+BDEFS[hit.type].name+' destroyed!','d');demolish(hit);if(G.attackedBlock===hit)G.attackedBlock=null;}
+      }
+      // Hit nearby units
+      for(const u of G.units){
+        if(Math.hypot(u.wx-e.wx,u.wy-e.wy)<1.2){
+          u.hp-=e.dmg*.4;
+          u.flashTimer=0.15;
+        }
+      }
+    }
+  }
+
+  if(G.waveActive&&G.enemies.length===0){
+    G.waveActive=false;
+    G.attackedBlock=null;
+    document.getElementById('wov').style.display='none';
+    document.getElementById('wdot').classList.remove('hot');
+    addLog('✓ Wave '+G.waveNum+' repelled!','s');
+    showNotif('Wave '+G.waveNum+' cleared! +$50 bonus','s');
+    G.money+=50;updateHUD();
+  }
+}
+
+function tickProjs(dt){
+  for(let i=G.projs.length-1;i>=0;i--){
+    const p=G.projs[i];
+    p.t+=dt/p.life;
+    if(p.t>=1) G.projs.splice(i,1);
+  }
+}
+
+// ==========================================================
+// RENDERER
+// ==========================================================
+const TC=[
+  '#b89a50', // sand
+  '#353840', // coal
+  '#5a4510', // gold
+];
+const TC2=[
+  '#c8aa60',
+  '#404550',
+  '#6a5520',
+];
+
+let canvas,ctx,mc,mctx,cc,cctx;
+
+function render(){
+  const W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  const z=G.zoom,cp=CELL*z;
+
+  const x0=Math.max(0,Math.floor(G.camX/cp)-1);
+  const y0=Math.max(0,Math.floor(G.camY/cp)-1);
+  const x1=Math.min(WW,x0+Math.ceil(W/cp)+3);
+  const y1=Math.min(WH,y0+Math.ceil(H/cp)+3);
+
+  // TERRAIN
+  for(let cy=y0;cy<y1;cy++){
+    for(let cx=x0;cx<x1;cx++){
+      const t=G.terrain[cy][cx];
+      const sx=Math.floor(cx*cp-G.camX);
+      const sy=Math.floor(cy*cp-G.camY);
+      const pw=Math.ceil(cp)+1, ph=Math.ceil(cp)+1;
+      ctx.fillStyle=TC[t];
+      ctx.fillRect(sx,sy,pw,ph);
+      // Noise/texture lines
+      ctx.fillStyle=TC2[t];
+      ctx.fillRect(sx,sy,pw,1);
+      ctx.fillRect(sx,sy,1,ph);
+    }
+  }
+
+  // BLOCKS
+  const drawn=new Set();
+  for(let cy=y0;cy<y1;cy++){
+    for(let cx=x0;cx<x1;cx++){
+      const b=G.bGrid[cy][cx];
+      if(b&&!drawn.has(b.id)){drawn.add(b.id);drawBlock(b,cp);}
+    }
+  }
+
+  // BUILD ORDER BLUEPRINTS (ghosts)
+  for(const o of G.buildOrders){
+    const bsx = o.gx*cp - G.camX;
+    const bsy = o.gy*cp - G.camY;
+    const bpw = o.size*cp, bph = o.size*cp;
+    // Skip if off screen
+    if(bsx+bpw<0||bsy+bph<0||bsx>canvas.width||bsy>canvas.height) continue;
+
+    const prog = o.buildTime>0 ? o.buildProgress/o.buildTime : 0;
+    const isActive = !!o.assignedBuilder;
+
+    // Blueprint tinted fill
+    ctx.globalAlpha = 0.35;
+    ctx.fillStyle = BDEFS[o.type].col;
+    ctx.fillRect(bsx, bsy, bpw, bph);
+    ctx.globalAlpha = 1;
+
+    // Dashed border — yellow if being worked, white if queued
+    ctx.strokeStyle = isActive ? '#f0c030' : 'rgba(255,255,255,0.5)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([Math.max(3,cp*0.12), Math.max(3,cp*0.08)]);
+    // Animate dashes when active
+    ctx.lineDashOffset = isActive ? -(G.elapsed*30 % 20) : 0;
+    ctx.strokeRect(bsx+1, bsy+1, bpw-2, bph-2);
+    ctx.setLineDash([]);
+    ctx.lineDashOffset = 0;
+
+    // Faded icon
+    ctx.globalAlpha = 0.45;
+    ctx.font = `${Math.max(10, cp*0.5*o.size)}px serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(BDEFS[o.type].ico, bsx+bpw/2, bsy+bph/2);
+    ctx.globalAlpha = 1;
+
+    // Build time label
+    const d = BDEFS[o.type];
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    const lh = Math.max(12, cp*0.22);
+    ctx.fillRect(bsx, bsy+bph-lh-1, bpw, lh+1);
+    ctx.fillStyle = isActive ? '#f0c030' : '#aaa';
+    ctx.font = `bold ${Math.max(7,cp*0.18)}px 'Share Tech Mono',monospace`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText(isActive ? `${(o.buildTime-o.buildProgress).toFixed(1)}s left` : `${d.buildTime}s · waiting`, bsx+bpw/2, bsy+bph-lh);
+
+    // Progress bar at bottom
+    if(prog > 0){
+      ctx.fillStyle = 'rgba(0,0,0,0.4)';
+      ctx.fillRect(bsx+2, bsy+bph-4, bpw-4, 4);
+      ctx.fillStyle = '#f0c030';
+      ctx.fillRect(bsx+2, bsy+bph-4, (bpw-4)*prog, 4);
+    }
+
+    // Port indicators on blueprints (faded)
+    drawPortIndicators(ctx, o.type, o.dir, bsx, bsy, bpw, bph, cp, o.size, 0.6);
+  }
+  const itemColors={coal:'#666',rawGold:'#c8a020',refinedGold:'#ffe060'};
+  for(const item of trackItems){
+    if(item.pathIdx>=item.path.length) continue;
+    const cur=item.path[item.pathIdx];
+    const next=item.path[Math.min(item.pathIdx+1,item.path.length-1)];
+    const t=item.progress;
+    const wx=cur.x+(next.x-cur.x)*t;
+    const wy=cur.y+(next.y-cur.y)*t;
+    const sx=(wx+0.5)*cp-G.camX;
+    const sy=(wy+0.5)*cp-G.camY;
+    // Only draw if on screen
+    if(sx<-cp||sy<-cp||sx>canvas.width+cp||sy>canvas.height+cp) continue;
+    ctx.beginPath();
+    ctx.arc(sx,sy,Math.max(3,cp*0.18),0,Math.PI*2);
+    ctx.fillStyle=itemColors[item.type]||'#fff';
+    ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,0.4)';
+    ctx.lineWidth=1;
+    ctx.stroke();
+  }
+
+  // ENEMIES — type-specific visuals
+  for(const e of G.enemies){
+    const sx=e.wx*cp-G.camX;
+    const sy=e.wy*cp-G.camY;
+    const cx2=sx+cp*.5, cy2=sy+cp*.5;
+    if(cx2<-cp||cy2<-cp||cx2>canvas.width+cp||cy2>canvas.height+cp) continue;
+
+    const eType=e.eType||'grunt';
+    ctx.save();
+    ctx.translate(cx2, cy2);
+
+    if(eType==='speeder'){
+      // Speeder: sleek diamond shape, teal/yellow, fast shimmer
+      const er=Math.max(4, cp*0.18);
+      const shimmer=(G.elapsed*4)%1;
+      ctx.beginPath();
+      ctx.moveTo(0,-er*1.4);ctx.lineTo(er*0.7,0);ctx.lineTo(0,er*1.4);ctx.lineTo(-er*0.7,0);
+      ctx.closePath();
+      ctx.fillStyle='#ffcc00';
+      ctx.shadowBlur=6; ctx.shadowColor='#ffaa00';
+      ctx.fill(); ctx.shadowBlur=0;
+      ctx.strokeStyle='#fff8'; ctx.lineWidth=1; ctx.stroke();
+      // Glowing eye
+      ctx.beginPath(); ctx.arc(0,0,er*0.28,0,Math.PI*2);
+      ctx.fillStyle='#fff'; ctx.fill();
+      // HP bar
+      const barW=Math.max(14,er*2);
+      ctx.restore();
+      drawBar(ctx,cx2-barW/2,cy2-er*1.8,barW,e.hp/e.maxHp,'#ffcc00',2);
+
+    } else if(eType==='brute'){
+      // Brute: massive, slow, armored hexagon with cracks
+      const er=Math.max(10, cp*0.48);
+      // Outer armor
+      ctx.beginPath();
+      for(let i=0;i<6;i++){
+        const a=(i/6)*Math.PI*2;
+        const px=Math.cos(a)*er, py=Math.sin(a)*er;
+        i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+      }
+      ctx.closePath();
+      ctx.fillStyle='#552200';
+      ctx.strokeStyle='#aa4400'; ctx.lineWidth=2; ctx.stroke(); ctx.fill();
+      // Inner core with pulsing
+      const pulse=0.85+Math.sin(G.elapsed*2)*0.15;
+      ctx.beginPath(); ctx.arc(0,0,er*0.55*pulse,0,Math.PI*2);
+      ctx.fillStyle='#993300'; ctx.fill();
+      // Angry glowing eye
+      ctx.beginPath(); ctx.arc(0,0,er*0.22,0,Math.PI*2);
+      ctx.fillStyle='#ff2200';
+      ctx.shadowBlur=12; ctx.shadowColor='#ff4400'; ctx.fill(); ctx.shadowBlur=0;
+      // Damage cracks overlay (shown when below 50% hp)
+      if(e.hp/e.maxHp<0.5){
+        ctx.strokeStyle='rgba(255,100,0,0.4)'; ctx.lineWidth=1.5;
+        ctx.beginPath(); ctx.moveTo(-er*.3,-er*.1); ctx.lineTo(er*.1,er*.3); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(er*.2,-er*.4); ctx.lineTo(-er*.1,er*.2); ctx.stroke();
+      }
+      ctx.restore();
+      // Big HP bar
+      const barW=Math.max(24,er*2.4);
+      drawBar(ctx,cx2-barW/2,cy2-er*1.2,barW,e.hp/e.maxHp,'#ff4400',5);
+
+    } else {
+      // Grunt: original spiky design
+      const er=Math.max(6,cp*0.3);
+      ctx.beginPath();
+      for(let i=0;i<8;i++){
+        const a=(i/8)*Math.PI*2 + (G.elapsed*1.2);
+        const ri = i%2===0 ? er : er*0.55;
+        const px=Math.cos(a)*ri, py=Math.sin(a)*ri;
+        i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+      }
+      ctx.closePath();
+      ctx.fillStyle='#881100'; ctx.fill();
+      ctx.strokeStyle='#cc3322'; ctx.lineWidth=1; ctx.stroke();
+      ctx.beginPath(); ctx.arc(0,0,er*0.52,0,Math.PI*2);
+      ctx.fillStyle='#cc2211'; ctx.fill();
+      ctx.beginPath(); ctx.arc(0,0,er*0.22,0,Math.PI*2);
+      ctx.fillStyle='#ff6600';
+      ctx.shadowBlur=8; ctx.shadowColor='#ff4400'; ctx.fill(); ctx.shadowBlur=0;
+      ctx.restore();
+      const barW=Math.max(18,er*2.2);
+      drawBar(ctx,cx2-barW/2,cy2-er*1.4,barW,e.hp/e.maxHp,'#ff4455',3);
+    }
+  }
+
+  // UNITS — rich character rendering
+  for(const u of G.units){
+    // Use visual (lerped) position
+    const sx = u.vx * cp - G.camX;
+    const sy = u.vy * cp - G.camY;
+    const cx = sx + cp * 0.5;
+    const cy = sy + cp * 0.5;
+
+    // Skip if way off screen
+    if(cx < -cp*2 || cy < -cp*2 || cx > canvas.width+cp*2 || cy > canvas.height+cp*2) continue;
+
+    const isSoldier = u.role === 'soldier';
+    const isBanker  = u.role === 'banker';
+    const r = Math.max(7, cp * 0.28);
+    const bob = Math.sin(u.bobTimer) * (u.state==='idle' ? 1.5 : 2.5);
+    const isMoving = Math.hypot(u.wx-u.vx, u.wy-u.vy) > 0.05;
+
+    ctx.save();
+    ctx.translate(cx, cy + bob);
+
+    // Combat glow
+    if(u.state === 'combat'){
+      ctx.shadowBlur = 14;
+      ctx.shadowColor = '#ffaa00';
+    }
+
+    // Hit flash overlay (draw white if flashing)
+    const flashing = (u.flashTimer||0) > 0;
+
+    if(isSoldier){
+      // === SOLDIER: angular, armored look ===
+      // Body (hexagonal torso)
+      ctx.beginPath();
+      for(let i=0;i<6;i++){
+        const a = (i/6)*Math.PI*2 - Math.PI/2;
+        const rx = Math.cos(a)*r*0.72, ry = Math.sin(a)*r*0.9;
+        i===0 ? ctx.moveTo(rx,ry) : ctx.lineTo(rx,ry);
+      }
+      ctx.closePath();
+      ctx.fillStyle = flashing ? '#ffffff' : '#2255aa';
+      ctx.fill();
+      ctx.strokeStyle = flashing ? '#ffffff' : '#66aaff';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // Chest plate
+      ctx.fillStyle = flashing ? '#ffffff' : '#3377cc';
+      ctx.fillRect(-r*0.35, -r*0.3, r*0.7, r*0.55);
+
+      // Helmet
+      ctx.beginPath();
+      ctx.arc(0, -r*0.55, r*0.38, Math.PI, 0);
+      ctx.fillStyle = flashing ? '#ffffff' : '#1a3d88';
+      ctx.fill();
+      ctx.strokeStyle = '#4488cc';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Visor slit
+      if(!flashing){
+        ctx.fillStyle = '#88ccff';
+        ctx.fillRect(-r*0.2, -r*0.7, r*0.4, r*0.12);
+      }
+
+      // Facing direction indicator (gun barrel)
+      ctx.save();
+      ctx.rotate(u.angle);
+      ctx.fillStyle = flashing ? '#fff' : '#aac';
+      ctx.fillRect(r*0.3, -r*0.08, r*0.55, r*0.16);
+      ctx.restore();
+
+      // Legs (animated walking)
+      if(isMoving){
+        const legSwing = Math.sin(u.bobTimer*2.5) * 0.3;
+        ctx.strokeStyle = flashing ? '#fff' : '#2255aa';
+        ctx.lineWidth = Math.max(2, r*0.22);
+        ctx.lineCap = 'round';
+        // Left leg
+        ctx.beginPath();
+        ctx.moveTo(-r*0.2, r*0.35);
+        ctx.lineTo(-r*0.2 + legSwing*r*0.4, r*0.72);
+        ctx.stroke();
+        // Right leg
+        ctx.beginPath();
+        ctx.moveTo(r*0.2, r*0.35);
+        ctx.lineTo(r*0.2 - legSwing*r*0.4, r*0.72);
+        ctx.stroke();
+      } else {
+        ctx.strokeStyle = flashing ? '#fff' : '#2255aa';
+        ctx.lineWidth = Math.max(2, r*0.22);
+        ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(-r*0.2,r*0.35); ctx.lineTo(-r*0.2,r*0.65); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(r*0.2,r*0.35);  ctx.lineTo(r*0.2,r*0.65);  ctx.stroke();
+      }
+
+    } else if(!isBanker) {
+      // === BUILDER: rounder, tool-carrying ===
+      // Body circle
+      ctx.beginPath();
+      ctx.arc(0, 0, r*0.75, 0, Math.PI*2);
+      ctx.fillStyle = flashing ? '#ffffff' : '#226633';
+      ctx.fill();
+      ctx.strokeStyle = flashing ? '#fff' : '#44cc77';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // Overalls / shirt
+      ctx.beginPath();
+      ctx.arc(0, r*0.1, r*0.52, 0, Math.PI);
+      ctx.fillStyle = flashing ? '#fff' : '#1a4d28';
+      ctx.fill();
+
+      // Head
+      ctx.beginPath();
+      ctx.arc(0, -r*0.5, r*0.35, 0, Math.PI*2);
+      ctx.fillStyle = flashing ? '#fff' : '#d4a870';
+      ctx.fill();
+
+      // Hard hat
+      ctx.beginPath();
+      ctx.ellipse(0, -r*0.72, r*0.4, r*0.18, 0, Math.PI, 0);
+      ctx.fillStyle = flashing ? '#fff' : '#f0c030';
+      ctx.fill();
+      ctx.strokeStyle = flashing ? '#fff' : '#c09010';
+      ctx.lineWidth=1;ctx.stroke();
+
+      // Tool (hammer) - rotates toward work
+      ctx.save();
+      ctx.rotate(u.angle);
+      const hammerBob = u.state==='work' ? Math.sin(u.bobTimer*4)*0.4 : 0;
+      ctx.rotate(hammerBob);
+      // Handle
+      ctx.strokeStyle = flashing ? '#fff' : '#8B4513';
+      ctx.lineWidth = Math.max(2, r*0.18);
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(r*0.2, 0);
+      ctx.lineTo(r*0.75, 0);
+      ctx.stroke();
+      // Head of hammer
+      ctx.fillStyle = flashing ? '#fff' : '#888';
+      ctx.fillRect(r*0.72, -r*0.18, r*0.22, r*0.36);
+      ctx.restore();
+
+      // Legs
+      if(isMoving){
+        const legSwing = Math.sin(u.bobTimer*2.5)*0.3;
+        ctx.strokeStyle = flashing ? '#fff' : '#1a5533';
+        ctx.lineWidth = Math.max(2, r*0.2);
+        ctx.lineCap='round';
+        ctx.beginPath();ctx.moveTo(-r*0.18,r*0.42);ctx.lineTo(-r*0.18+legSwing*r*0.35,r*0.75);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(r*0.18,r*0.42);ctx.lineTo(r*0.18-legSwing*r*0.35,r*0.75);ctx.stroke();
+      } else {
+        ctx.strokeStyle = flashing ? '#fff' : '#1a5533';
+        ctx.lineWidth = Math.max(2, r*0.2);
+        ctx.lineCap='round';
+        ctx.beginPath();ctx.moveTo(-r*0.18,r*0.42);ctx.lineTo(-r*0.18,r*0.72);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(r*0.18,r*0.42);ctx.lineTo(r*0.18,r*0.72);ctx.stroke();
+      }
+
+    } else if(isBanker){
+      // === BANKER: suited figure with briefcase ===
+      // Suit body (rectangle torso)
+      ctx.fillStyle = flashing ? '#fff' : '#1a1a3a';
+      ctx.fillRect(-r*0.42, -r*0.25, r*0.84, r*0.65);
+      // White shirt / tie
+      if(!flashing){
+        ctx.fillStyle = '#eee';
+        ctx.fillRect(-r*0.12, -r*0.22, r*0.24, r*0.42);
+        ctx.fillStyle = '#ffcc00';
+        ctx.fillRect(-r*0.04, -r*0.18, r*0.08, r*0.32);
+      }
+      // Suit lapels
+      ctx.fillStyle = flashing ? '#fff' : '#252550';
+      ctx.beginPath();ctx.moveTo(-r*0.42,-r*0.25);ctx.lineTo(-r*0.12,-r*0.06);ctx.lineTo(-r*0.42,r*0.1);ctx.closePath();ctx.fill();
+      ctx.beginPath();ctx.moveTo(r*0.42,-r*0.25);ctx.lineTo(r*0.12,-r*0.06);ctx.lineTo(r*0.42,r*0.1);ctx.closePath();ctx.fill();
+      // Head
+      ctx.beginPath();ctx.arc(0,-r*0.52,r*0.32,0,Math.PI*2);
+      ctx.fillStyle = flashing ? '#fff' : '#c8956a';
+      ctx.fill();
+      // Top hat
+      ctx.fillStyle = flashing ? '#fff' : '#111';
+      ctx.fillRect(-r*0.28, -r*0.9, r*0.56, r*0.42);
+      ctx.fillRect(-r*0.34, -r*0.52, r*0.68, r*0.1);
+      // Gold band on hat
+      if(!flashing){ ctx.fillStyle='#ffcc00'; ctx.fillRect(-r*0.28,-r*0.56,r*0.56,r*0.07); }
+      // Briefcase (on output side)
+      ctx.save();
+      ctx.rotate(u.angle);
+      const bcBob = u.state==='work' ? Math.sin(u.bobTimer*3)*0.15 : 0;
+      ctx.rotate(bcBob);
+      ctx.fillStyle = flashing ? '#fff' : '#8B6914';
+      ctx.fillRect(r*0.35, -r*0.2, r*0.38, r*0.3);
+      ctx.strokeStyle = flashing ? '#fff' : '#5a4010';
+      ctx.lineWidth=1;ctx.strokeRect(r*0.35,-r*0.2,r*0.38,r*0.3);
+      if(!flashing){ ctx.fillStyle='#aaa'; ctx.fillRect(r*0.5,-r*0.22,r*0.1,r*0.05); }
+      ctx.restore();
+      // Gold coin sparkle when working
+      if(u.state==='work' && !flashing){
+        const sparkT=(G.elapsed*3)%1;
+        ctx.globalAlpha=1-sparkT;
+        ctx.fillStyle='#ffd700';
+        ctx.font=`${r*0.5}px serif`;
+        ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillText('💰',0,-r*(0.8+sparkT*0.6));
+        ctx.globalAlpha=1;
+      }
+      // Legs
+      if(isMoving){
+        const legSwing=Math.sin(u.bobTimer*2.5)*0.3;
+        ctx.strokeStyle=flashing?'#fff':'#1a1a3a';
+        ctx.lineWidth=Math.max(2,r*0.2);ctx.lineCap='round';
+        ctx.beginPath();ctx.moveTo(-r*0.18,r*0.4);ctx.lineTo(-r*0.18+legSwing*r*0.35,r*0.72);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(r*0.18,r*0.4);ctx.lineTo(r*0.18-legSwing*r*0.35,r*0.72);ctx.stroke();
+      } else {
+        ctx.strokeStyle=flashing?'#fff':'#1a1a3a';
+        ctx.lineWidth=Math.max(2,r*0.2);ctx.lineCap='round';
+        ctx.beginPath();ctx.moveTo(-r*0.18,r*0.4);ctx.lineTo(-r*0.18,r*0.7);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(r*0.18,r*0.4);ctx.lineTo(r*0.18,r*0.7);ctx.stroke();
+      }
+    } else if(u.role==='scout'){
+      // === SCOUT: lean figure, hood, fast-looking ===
+      // Body - lean triangle
+      ctx.fillStyle = flashing ? '#fff' : '#1a3a2a';
+      ctx.beginPath();
+      ctx.moveTo(0,-r*0.8); ctx.lineTo(r*0.38,r*0.38); ctx.lineTo(-r*0.38,r*0.38);
+      ctx.closePath(); ctx.fill();
+      // Hood/head
+      ctx.beginPath(); ctx.arc(0,-r*0.65,r*0.3,0,Math.PI*2);
+      ctx.fillStyle = flashing?'#fff':'#2a5a3a'; ctx.fill();
+      // Goggles (two circles)
+      if(!flashing){
+        ctx.fillStyle='#44ffaa';
+        ctx.beginPath();ctx.arc(-r*0.12,-r*0.7,r*0.1,0,Math.PI*2);ctx.fill();
+        ctx.beginPath();ctx.arc(r*0.12,-r*0.7,r*0.1,0,Math.PI*2);ctx.fill();
+      }
+      // Speed lines when moving
+      if(isMoving && !flashing){
+        ctx.strokeStyle='rgba(100,255,150,0.25)'; ctx.lineWidth=1;
+        for(let li=0;li<3;li++){
+          const lineAng=u.angle+Math.PI+(.5-li*0.5)*0.4;
+          ctx.beginPath();
+          ctx.moveTo(Math.cos(lineAng)*r*0.4,Math.sin(lineAng)*r*0.4);
+          ctx.lineTo(Math.cos(lineAng)*r*1.2,Math.sin(lineAng)*r*1.2);
+          ctx.stroke();
+        }
+      }
+      // Legs (fast)
+      const legSwingS=Math.sin(u.bobTimer*4)*0.45;
+      ctx.strokeStyle=flashing?'#fff':'#1a3a2a'; ctx.lineWidth=Math.max(2,r*0.18); ctx.lineCap='round';
+      ctx.beginPath();ctx.moveTo(-r*0.15,r*0.35);ctx.lineTo(-r*0.15+legSwingS*r*0.35,r*0.72);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(r*0.15,r*0.35);ctx.lineTo(r*0.15-legSwingS*r*0.35,r*0.72);ctx.stroke();
+
+    } else if(u.role==='medic'){
+      // === MEDIC: white coat, red cross ===
+      // White coat body
+      ctx.fillStyle = flashing ? '#fff' : '#dddddd';
+      ctx.fillRect(-r*0.4,-r*0.25,r*0.8,r*0.65);
+      // Red cross on chest
+      if(!flashing){
+        ctx.fillStyle='#dd2222';
+        ctx.fillRect(-r*0.06,-r*0.22,r*0.12,r*0.32);
+        ctx.fillRect(-r*0.18,-r*0.12,r*0.36,r*0.12);
+      }
+      // Head
+      ctx.beginPath(); ctx.arc(0,-r*0.52,r*0.3,0,Math.PI*2);
+      ctx.fillStyle=flashing?'#fff':'#c8a080'; ctx.fill();
+      // White cap
+      ctx.fillStyle=flashing?'#fff':'#eee';
+      ctx.fillRect(-r*0.3,-r*0.82,r*0.6,r*0.35);
+      ctx.beginPath(); ctx.arc(0,-r*0.82,r*0.3,Math.PI,0); ctx.fill();
+      // Red cross on cap
+      if(!flashing){
+        ctx.fillStyle='#dd2222';
+        ctx.fillRect(-r*0.04,-r*0.82,r*0.08,r*0.28);
+        ctx.fillRect(-r*0.16,-r*0.68,r*0.32,r*0.08);
+      }
+      // Healing sparkle on target
+      if(u._healTimer){
+        u._healTimer-=0.016;
+        if(u._healTimer>0){
+          const ht=(1-u._healTimer)%1;
+          ctx.globalAlpha=Math.max(0,0.9-ht);
+          ctx.fillStyle='#44ff88';
+          ctx.font=`${r*0.7}px serif`;
+          ctx.textAlign='center'; ctx.textBaseline='middle';
+          ctx.fillText('➕',0,-r*(0.5+ht*1.2));
+          ctx.globalAlpha=1;
+        }
+      }
+      // Legs
+      const legSwingM=Math.sin(u.bobTimer*2.5)*0.3;
+      ctx.strokeStyle=flashing?'#fff':'#aaa'; ctx.lineWidth=Math.max(2,r*0.18); ctx.lineCap='round';
+      ctx.beginPath();ctx.moveTo(-r*0.15,r*0.38);ctx.lineTo(-r*0.15+legSwingM*r*0.3,r*0.7);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(r*0.15,r*0.38);ctx.lineTo(r*0.15-legSwingM*r*0.3,r*0.7);ctx.stroke();
+    }
+
+    ctx.shadowBlur = 0;
+    ctx.restore();
+
+    // HP bar above unit
+    const barW = Math.max(20, r*2.2);
+    drawBar(ctx, cx-barW/2, cy-r*1.35-bob, barW, u.hp/u.maxHp,
+      u.hp/u.maxHp>0.5?'#3ddc84':'#ff4455', 3);
+
+    // Name tag (only when zoomed in enough)
+    if(G.zoom > 0.8){
+      ctx.fillStyle = 'rgba(0,0,0,0.55)';
+      ctx.fillRect(cx-r*1.1, cy+r*0.85-bob, r*2.2, 11);
+      const nameCol = isSoldier?'#88bbff':isBanker?'#ffd700':
+                      u.role==='scout'?'#44ffaa':u.role==='medic'?'#ff8888':'#88ffbb';
+      ctx.fillStyle = nameCol;
+      ctx.font = `bold ${Math.max(7, cp*0.18)}px 'Share Tech Mono',monospace`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillText(u.task, cx, cy+r*0.88-bob);
+    }
+  }
+
+  // PROJECTILES
+  for(const p of G.projs){
+    const px=(p.sx+(p.ex-p.sx)*p.t)*cp-G.camX;
+    const py=(p.sy+(p.ey-p.sy)*p.t)*cp-G.camY;
+    const arc = p.fromTurret ? 0 : Math.sin(p.t*Math.PI)*cp*0.3;
+    const perpX = -(p.ey-p.sy); const perpY = (p.ex-p.sx);
+    const plen = Math.hypot(perpX,perpY)||1;
+    const bpx = px + (perpX/plen)*arc;
+    const bpy = py + (perpY/plen)*arc;
+    ctx.beginPath();
+    ctx.arc(bpx,bpy, p.fromTurret?2.5:3, 0, Math.PI*2);
+    ctx.fillStyle = p.fromTurret ? '#ff8800' : '#ffee88';
+    ctx.shadowBlur = p.fromTurret ? 8 : 6;
+    ctx.shadowColor = p.fromTurret ? '#ff4400' : '#ffff00';
+    ctx.fill();
+    ctx.shadowBlur=0;
+  }
+
+  // GHOST (placement preview)
+  if(G.mode==='place'&&G.placeType){
+    const {x:gx,y:gy}=G.cell;
+    const d=BDEFS[G.placeType];
+    if(d&&gx>=0&&gy>=0){
+      const s=d.size;
+      const sx=gx*cp-G.camX,sy=gy*cp-G.camY;
+      const pw=s*cp, ph=s*cp;
+      const r=canPlace(G.placeType,gx,gy);
+      ctx.fillStyle=r.ok?'rgba(61,220,132,.18)':'rgba(255,68,85,.18)';
+      ctx.strokeStyle=r.ok?'rgba(61,220,132,.85)':'rgba(255,68,85,.85)';
+      ctx.lineWidth=2;
+      ctx.fillRect(sx,sy,pw,ph);
+      ctx.strokeRect(sx+1,sy+1,pw-2,ph-2);
+      // Faded block icon
+      ctx.globalAlpha=0.35;
+      ctx.font=`${Math.max(10,cp*0.45*s)}px serif`;
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillStyle='#fff';
+      ctx.fillText(d.ico, sx+pw/2, sy+ph/2);
+      ctx.globalAlpha=1;
+      // Port indicators
+      drawPortIndicators(ctx, G.placeType, G.placeDir, sx, sy, pw, ph, cp, s, 0.85);
+    }
+  }
+
+  // SELECT MODE HOVER — show block highlight + rotate hint
+  if(G.mode==='select'){
+    const {x:gx,y:gy}=G.cell;
+    if(gx>=0&&gy>=0&&gx<WW&&gy<WH){
+      const b=G.bGrid[gy]?.[gx];
+      if(b){
+        const bsx=b.gx*cp-G.camX, bsy=b.gy*cp-G.camY;
+        ctx.strokeStyle='rgba(255,255,255,0.45)';
+        ctx.lineWidth=2;
+        ctx.setLineDash([4,4]);
+        ctx.strokeRect(bsx+1,bsy+1,b.size*cp-2,b.size*cp-2);
+        ctx.setLineDash([]);
+        // Show [R] rotate hint if rotatable
+        if(b.type==='loader'||b.type==='unloader'){
+          ctx.fillStyle='rgba(0,0,0,0.65)';
+          const hw=54, hh=16;
+          ctx.fillRect(bsx,bsy-hh-2,hw,hh);
+          ctx.fillStyle='#f0a500';
+          ctx.font=`bold ${Math.max(8,cp*0.22)}px 'Share Tech Mono',monospace`;
+          ctx.textAlign='left';ctx.textBaseline='top';
+          ctx.fillText('[R] rotate',bsx+3,bsy-hh-1);
+        }
+      }
+    }
+  }
+
+  // DEMOLISH HOVER
+  if(G.mode==='demolish'){
+    const {x:gx,y:gy}=G.cell;
+    if(gx>=0&&gy>=0&&gx<WW&&gy<WH){
+      const b=G.bGrid[gy]?.[gx];
+      if(b){
+        const sx=b.gx*cp-G.camX,sy=b.gy*cp-G.camY;
+        ctx.fillStyle='rgba(255,68,85,.2)';
+        ctx.strokeStyle='rgba(255,68,85,.7)';
+        ctx.lineWidth=2;
+        ctx.fillRect(sx,sy,b.size*cp,b.size*cp);
+        ctx.strokeRect(sx+1,sy+1,b.size*cp-2,b.size*cp-2);
+      } else {
+        // Blueprint hover
+        const o=orderAtCell(gx,gy);
+        if(o){
+          const sx=o.gx*cp-G.camX,sy=o.gy*cp-G.camY;
+          ctx.fillStyle='rgba(255,68,85,.18)';
+          ctx.strokeStyle='rgba(255,150,50,.8)';
+          ctx.lineWidth=2;
+          ctx.setLineDash([4,4]);
+          ctx.fillRect(sx,sy,o.size*cp,o.size*cp);
+          ctx.strokeRect(sx+1,sy+1,o.size*cp-2,o.size*cp-2);
+          ctx.setLineDash([]);
+          // Label
+          ctx.fillStyle='rgba(0,0,0,0.65)';
+          ctx.fillRect(sx,sy-18,80,16);
+          ctx.fillStyle='#ff9944';
+          ctx.font=`bold ${Math.max(8,cp*0.2)}px 'Share Tech Mono',monospace`;
+          ctx.textAlign='left'; ctx.textBaseline='top';
+          ctx.fillText('Cancel blueprint',sx+3,sy-17);
+        }
+      }
+    }
+  }
+}
+
+function drawBlock(b,cp){
+  const d=BDEFS[b.type];
+  const sx=Math.floor(b.gx*cp-G.camX);
+  const sy=Math.floor(b.gy*cp-G.camY);
+  const s=b.size;
+  const pw=Math.ceil(s*cp),ph=Math.ceil(s*cp);
+
+  // Base
+  ctx.fillStyle=d.col;
+  ctx.fillRect(sx,sy,pw,ph);
+
+  // Bevel
+  ctx.fillStyle='rgba(255,255,255,.08)';
+  ctx.fillRect(sx,sy,pw,2);
+  ctx.fillRect(sx,sy,2,ph);
+  ctx.fillStyle='rgba(0,0,0,.2)';
+  ctx.fillRect(sx,sy+ph-2,pw,2);
+  ctx.fillRect(sx+pw-2,sy,2,ph);
+
+  // Border
+  ctx.strokeStyle='rgba(255,255,255,.12)';
+  ctx.lineWidth=1;
+  ctx.strokeRect(sx+.5,sy+.5,pw-1,ph-1);
+
+  // Icon
+  const iconSz=Math.max(10,cp*.5*s);
+  ctx.font=`${iconSz}px serif`;
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText(d.ico,sx+pw*.5,sy+ph*.5);
+
+  // Fuel bar (goldDrill, furnace)
+  if((b.type==='goldDrill'||b.type==='furnace')&&b.fuel!==undefined){
+    const maxF=b.type==='goldDrill'?30:40;
+    drawBar(ctx,sx+2,sy+ph-6,pw-4,Math.min(1,b.fuel/maxF),'#f07800',4);
+  }
+
+  // Turret: ammo bar + range ring when selected/hovered
+  if(b.type==='turret'){
+    const maxAmmo=64;
+    drawBar(ctx,sx+2,sy+ph-6,pw-4,Math.min(1,(b.inv.coal||0)/maxAmmo),'#ff8800',4);
+    // Range ring
+    const rng=(b._range||7)*cp;
+    ctx.beginPath();
+    ctx.arc(sx+pw/2,sy+ph/2,rng,0,Math.PI*2);
+    ctx.strokeStyle='rgba(255,136,0,0.15)';
+    ctx.lineWidth=1.5;
+    ctx.stroke();
+    // Barrel pointing toward last target or straight right
+    if(b.active&&G.enemies.length){
+      let nearest=null,nearD=Infinity;
+      for(const e of G.enemies){
+        const d=Math.hypot(e.wx-(b.gx+.5),e.wy-(b.gy+.5));
+        if(d<nearD){nearD=d;nearest=e;}
+      }
+      if(nearest){
+        const ang=Math.atan2(nearest.wy-(b.gy+.5),nearest.wx-(b.gx+.5));
+        const blen=cp*.44;
+        ctx.strokeStyle='#88ff44';ctx.lineWidth=2;ctx.lineCap='round';
+        ctx.beginPath();
+        ctx.moveTo(sx+pw/2,sy+ph/2);
+        ctx.lineTo(sx+pw/2+Math.cos(ang)*blen,sy+ph/2+Math.sin(ang)*blen);
+        ctx.stroke();
+      }
+    }
+  }
+
+  // Pipe In/Out: glowing tint
+  if(b.type==='pipeIn'||b.type==='pipeOut'){
+    ctx.fillStyle=b.type==='pipeIn'?'rgba(40,160,255,0.12)':'rgba(40,255,200,0.12)';
+    ctx.fillRect(sx,sy,pw,ph);
+  }
+
+  // Active glow
+  if(b.active){
+    ctx.strokeStyle='rgba(61,220,132,.4)';
+    ctx.lineWidth=2;
+    ctx.strokeRect(sx+1,sy+1,pw-2,ph-2);
+  }
+
+  // HP bar if damaged
+  if(b.hp<b.maxHp){
+    drawBar(ctx,sx+2,sy-5,pw-4,b.hp/b.maxHp,'#3ddc84',3);
+  }
+
+  // Item count
+  const total=totalInv(b.inv);
+  if(total>0){
+    ctx.fillStyle='rgba(255,255,255,.85)';
+    ctx.font=`bold ${Math.max(8,cp*.28)}px 'Share Tech Mono',monospace`;
+    ctx.textAlign='right';ctx.textBaseline='top';
+    ctx.fillText(total,sx+pw-3,sy+3);
+  }
+
+  drawPortIndicators(ctx, b.type, b.dir, sx, sy, pw, ph, cp, b.size, 1.0);
+}
+
+// Standalone port indicator renderer — called for real blocks, blueprints, and placement ghosts
+function drawPortIndicators(ctx, type, dir, sx, sy, pw, ph, cp, size, alpha){
+  ctx.globalAlpha = alpha;
+  const s2 = size;
+  const halfPW = pw/2, halfPH = ph/2;
+
+  const drawSideArrow = (side, color, inset=0.88) => {
+    const adx=DIR_DX[side], ady=DIR_DY[side];
+    const asz=Math.max(4, cp*0.19*Math.sqrt(s2));
+    const acx=sx+halfPW+adx*halfPW*inset;
+    const acy=sy+halfPH+ady*halfPH*inset;
+    ctx.save();
+    ctx.translate(acx,acy);
+    ctx.rotate(Math.atan2(ady,adx));
+    ctx.fillStyle=color;
+    ctx.shadowBlur=3; ctx.shadowColor=color;
+    ctx.beginPath();
+    ctx.moveTo(asz,0);
+    ctx.lineTo(-asz*0.55,-asz*0.45);
+    ctx.lineTo(-asz*0.2,0);
+    ctx.lineTo(-asz*0.55, asz*0.45);
+    ctx.closePath();
+    ctx.fill();
+    ctx.shadowBlur=0;
+    ctx.restore();
+  };
+
+  const drawDirArrow = (d) => {
+    const adx=DIR_DX[d], ady=DIR_DY[d];
+    const asz=Math.max(5, cp*0.26*s2);
+    ctx.save();
+    ctx.translate(sx+halfPW,sy+halfPH);
+    ctx.rotate(Math.atan2(ady,adx));
+    ctx.fillStyle='rgba(80,160,255,0.9)';
+    ctx.shadowBlur=5; ctx.shadowColor='#4499ff';
+    ctx.beginPath();
+    ctx.moveTo(asz,0);
+    ctx.lineTo(-asz*0.55,-asz*0.42);
+    ctx.lineTo(-asz*0.2,0);
+    ctx.lineTo(-asz*0.55, asz*0.42);
+    ctx.closePath();
+    ctx.fill();
+    ctx.shadowBlur=0;
+    ctx.restore();
+  };
+
+  const R='#ff4444', G2='#44dd66';
+
+  switch(type){
+    case 'coalDrill':
+      for(let s=0;s<4;s++) drawSideArrow(s,R); break;
+    case 'goldDrill':
+      for(let s=0;s<4;s++){ drawSideArrow(s,G2,0.96); drawSideArrow(s,R,0.74); } break;
+    case 'furnace':
+      for(let s=0;s<4;s++){ drawSideArrow(s,G2,0.96); drawSideArrow(s,R,0.74); } break;
+    case 'bank':
+      for(let s=0;s<4;s++) drawSideArrow(s,G2); break;
+    case 'chest':
+      for(let s=0;s<4;s++) drawSideArrow(s,G2); break;
+    case 'turret':
+      // Consumes coal (green input), no output
+      for(let s=0;s<4;s++) drawSideArrow(s,G2); break;
+    case 'ammoDep':
+      // Passive booster — no item ports, just proximity
+      break;
+    case 'goldVault':
+      // Input only (stores refined gold)
+      for(let s=0;s<4;s++) drawSideArrow(s,G2); break;
+    case 'pipeIn':
+      // Takes items from machine (green = machine side = OPP[dir])
+      drawDirArrow(dir);
+      drawSideArrow(OPP[dir],G2,0.92); // machine connects here
+      drawSideArrow(dir,'#44aaff',0.92); // teleport out this side (blue-tinted)
+      break;
+    case 'pipeOut':
+      // Outputs items to loaders (red = output side)
+      drawDirArrow(dir);
+      drawSideArrow(dir,R,0.92);          // items come out here
+      drawSideArrow(OPP[dir],'#44aaff',0.92); // teleport in from this side
+      break;
+    case 'unloader':
+      drawDirArrow(dir);
+      drawSideArrow(dir,R,0.92);
+      drawSideArrow(OPP[dir],G2,0.92);
+      break;
+    case 'loader':
+      drawDirArrow(dir);
+      drawSideArrow(dir,G2,0.92);
+      drawSideArrow(OPP[dir],R,0.92);
+      break;
+    case 'track':
+      drawDirArrow(dir); break;
+    case 'splitter':
+      drawDirArrow(dir);
+      drawSideArrow(dir,R,0.92);
+      drawSideArrow((dir+2)%4,R,0.92);
+      drawSideArrow(OPP[dir],G2,0.92);
+      break;
+    case 'merger':
+      drawDirArrow(dir);
+      // Output = b.dir (red), two inputs = the other three sides (green)
+      drawSideArrow(dir,R,0.92);
+      drawSideArrow(OPP[dir],G2,0.92);
+      drawSideArrow((dir+1)%4,G2,0.92);
+      drawSideArrow((dir+3)%4,G2,0.92);
+      break;
+    // wall, camp, bank: no directional ports that need arrows beyond what's above
+  }
+  ctx.globalAlpha=1;
+}
+
+function drawBar(ctx,x,y,w,ratio,col,h){
+  ratio=Math.max(0,Math.min(1,ratio));
+  ctx.fillStyle='rgba(0,0,0,.5)';
+  ctx.fillRect(x,y,w,h);
+  ctx.fillStyle=col;
+  ctx.fillRect(x,y,w*ratio,h);
+}
+
+// MINIMAP
+function renderMinimap(){
+  const mw=mc.width,mh=mc.height;
+  mctx.clearRect(0,0,mw,mh);
+  const sx=mw/WW,sy=mh/WH;
+  for(let cy=0;cy<WH;cy++)
+    for(let cx=0;cx<WW;cx++){
+      const t=G.terrain[cy][cx];
+      mctx.fillStyle=t===T_COAL?'#383c45':t===T_GOLD?'#504010':'#705828';
+      mctx.fillRect(cx*sx,cy*sy,sx+.5,sy+.5);
+    }
+  for(const [,b] of G.blocks){
+    mctx.fillStyle=BDEFS[b.type].col;
+    mctx.fillRect(b.gx*sx,b.gy*sy,b.size*sx+.5,b.size*sy+.5);
+  }
+  for(const e of G.enemies){
+    mctx.fillStyle=e.eType==='brute'?'#ff8800':e.eType==='speeder'?'#ffee00':'#ff4455';
+    const es=e.eType==='brute'?4:e.eType==='speeder'?2:3;
+    mctx.fillRect(e.wx*sx-es/2,e.wy*sy-es/2,es,es);
+  }
+  for(const u of G.units){
+    mctx.fillStyle=u.role==='soldier'?'#4499ff':u.role==='scout'?'#44ffaa':u.role==='medic'?'#ff8888':'#44ff88';
+    mctx.fillRect((u.vx||u.wx)*sx-1.5,(u.vy||u.wy)*sy-1.5,4,4);
+  }
+  // Viewport rect
+  const cp=CELL*G.zoom;
+  const vx=G.camX/cp*sx,vy=G.camY/cp*sy;
+  const vw=(canvas.width/cp)*sx,vh=(canvas.height/cp)*sy;
+  mctx.strokeStyle='rgba(255,255,255,.35)';
+  mctx.lineWidth=1;
+  mctx.strokeRect(vx,vy,vw,vh);
+}
+
+function renderCompass(){
+  const W=cc.width, H=cc.height;
+  const cx=W/2, cy=H/2, R=W/2-2;
+  cctx.clearRect(0,0,W,H);
+
+  // Outer ring gradient
+  const grad=cctx.createRadialGradient(cx,cy,R*0.55,cx,cy,R);
+  grad.addColorStop(0,'rgba(30,35,45,0.0)');
+  grad.addColorStop(1,'rgba(10,12,16,0.85)');
+  cctx.beginPath();cctx.arc(cx,cy,R,0,Math.PI*2);
+  cctx.fillStyle=grad;cctx.fill();
+
+  // Tick marks
+  for(let i=0;i<32;i++){
+    const a=(i/32)*Math.PI*2;
+    const isMaj=i%8===0, isMed=i%4===0;
+    const r0=isMaj?R*0.60:isMed?R*0.68:R*0.78;
+    const r1=R*0.88;
+    cctx.beginPath();
+    cctx.moveTo(cx+Math.cos(a)*r0, cy+Math.sin(a)*r0);
+    cctx.lineTo(cx+Math.cos(a)*r1, cy+Math.sin(a)*r1);
+    cctx.strokeStyle=isMaj?'rgba(240,165,0,0.7)':'rgba(255,255,255,0.2)';
+    cctx.lineWidth=isMaj?1.5:0.7;
+    cctx.stroke();
+  }
+
+  // Cardinal labels  (N is up = -π/2, E = 0, S = π/2, W = π)
+  const cardinals=[
+    {lbl:'N', a:-Math.PI/2, col:'#ff5544'},
+    {lbl:'E', a:0,          col:'#cccccc'},
+    {lbl:'S', a:Math.PI/2,  col:'#aaaaaa'},
+    {lbl:'W', a:Math.PI,    col:'#aaaaaa'},
+  ];
+  const lr=R*0.48;
+  cctx.textAlign='center'; cctx.textBaseline='middle';
+  for(const c of cardinals){
+    cctx.font=`bold ${c.lbl==='N'?11:9}px 'Orbitron',monospace`;
+    cctx.fillStyle=c.col;
+    cctx.shadowBlur=c.lbl==='N'?6:0;
+    cctx.shadowColor='#ff4422';
+    cctx.fillText(c.lbl, cx+Math.cos(c.a)*lr, cy+Math.sin(c.a)*lr);
+  }
+  cctx.shadowBlur=0;
+
+  // Compass needle — two diamonds: red points N, dark points S
+  const needleLen=R*0.38, needleW=R*0.1;
+  // North half (red)
+  cctx.beginPath();
+  cctx.moveTo(cx, cy-needleLen);
+  cctx.lineTo(cx-needleW, cy);
+  cctx.lineTo(cx, cy-needleW*0.4);
+  cctx.lineTo(cx+needleW, cy);
+  cctx.closePath();
+  const ng1=cctx.createLinearGradient(cx,cy-needleLen,cx,cy);
+  ng1.addColorStop(0,'#ff6644');ng1.addColorStop(1,'#cc2200');
+  cctx.fillStyle=ng1;
+  cctx.shadowBlur=8;cctx.shadowColor='rgba(255,80,40,.6)';
+  cctx.fill();
+  cctx.shadowBlur=0;
+  // South half (dark steel)
+  cctx.beginPath();
+  cctx.moveTo(cx, cy+needleLen);
+  cctx.lineTo(cx-needleW, cy);
+  cctx.lineTo(cx, cy+needleW*0.4);
+  cctx.lineTo(cx+needleW, cy);
+  cctx.closePath();
+  const ng2=cctx.createLinearGradient(cx,cy,cx,cy+needleLen);
+  ng2.addColorStop(0,'#888');ng2.addColorStop(1,'#333');
+  cctx.fillStyle=ng2;cctx.fill();
+
+  // Center pivot
+  cctx.beginPath();cctx.arc(cx,cy,R*0.07,0,Math.PI*2);
+  const pg=cctx.createRadialGradient(cx,cy,0,cx,cy,R*0.07);
+  pg.addColorStop(0,'#fff');pg.addColorStop(1,'#888');
+  cctx.fillStyle=pg;cctx.fill();
+  cctx.strokeStyle='rgba(0,0,0,0.5)';cctx.lineWidth=0.8;cctx.stroke();
+
+  // Outer border ring
+  cctx.beginPath();cctx.arc(cx,cy,R,0,Math.PI*2);
+  cctx.strokeStyle='rgba(255,255,255,0.12)';cctx.lineWidth=1.5;cctx.stroke();
+}
+function updateHUD(){
+  document.getElementById('hMoney').textContent='$'+G.money.toLocaleString();
+  document.getElementById('hCoal').textContent=G.inv.coal;
+  document.getElementById('hRaw').textContent=G.inv.rawGold;
+  document.getElementById('hRef').textContent=G.inv.refinedGold;
+  document.getElementById('hWave').textContent=G.waveNum;
+  const rem=Math.max(0,G.dur-G.elapsed);
+  const mm=Math.floor(rem/60).toString().padStart(2,'0');
+  const ss=Math.floor(rem%60).toString().padStart(2,'0');
+  document.getElementById('hTime').textContent=mm+':'+ss;
+
+  // Inventory grid
+  const grid=document.getElementById('invgrid');
+  const items=[
+    {ico:'⚫',label:'Coal',val:G.inv.coal},
+    {ico:'🟡',label:'Raw Gold',val:G.inv.rawGold},
+    {ico:'✨',label:'Refined',val:G.inv.refinedGold},
+    {ico:'💰',label:'Money',val:G.money},
+    {ico:'⚔',label:'Soldiers',val:G.units.filter(u=>u.role==='soldier').length},
+    {ico:'🔨',label:'Builders',val:G.units.filter(u=>u.role==='builder').length},
+    {ico:'💰',label:'Bankers',val:G.units.filter(u=>u.role==='banker').length},
+    {ico:'💀',label:'Kills',val:G.kills},
+    {ico:'🏭',label:'Blocks',val:G.blocks.size},
+  ];
+  grid.innerHTML=items.map(it=>`<div class="invsl">${it.ico}<div class="ic">${it.val}</div></div>`).join('');
+}
+
+function updateWaveHUD(){
+  const wt=Math.max(0,G.waveTimer);
+  const mm=Math.floor(wt/60).toString().padStart(2,'0');
+  const ss=Math.floor(wt%60).toString().padStart(2,'0');
+  document.getElementById('wtext').textContent=G.waveActive?`WAVE ${G.waveNum} ACTIVE`:`NEXT WAVE ${mm}:${ss}`;
+}
+
+let uListTimer=0;
+function updateUnitList(dt){
+  uListTimer-=dt||0;
+  if(uListTimer>0) return;
+  uListTimer=0.5;
+  const cap = maxUnits();
+  document.getElementById('ucnt').textContent=G.units.length;
+  document.getElementById('ucap').textContent=cap;
+  // Show "build a camp" nudge when near cap
+  const capMsg = document.getElementById('capmsg');
+  if(capMsg) capMsg.style.display = G.units.length>=cap ? 'block' : 'none';
+  const ul=document.getElementById('ulist');
+  if(!G.units.length){ul.innerHTML='<div style="color:var(--text2);font-family:\'Share Tech Mono\',monospace;font-size:.62rem;padding:.25rem">No units deployed</div>';return;}
+  ul.innerHTML=G.units.map(u=>{
+    const pct=(u.hp/u.maxHp*100).toFixed(0);
+    const col=u.hp/u.maxHp>0.5?'var(--green)':'var(--red)';
+    return `<div class="uitem">
+      <span class="uico">${u.role==='soldier'?'⚔':u.role==='banker'?'💰':'🔨'}</span>
+      <div class="udets">
+        <div class="uname">${u.role.charAt(0).toUpperCase()+u.role.slice(1)}</div>
+        <div class="utask">${u.task}</div>
+        <div class="mbar"><div class="mbarf" style="width:${pct}%;background:${col}"></div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function addLog(msg,type){
+  const list=document.getElementById('loglist');
+  const d=document.createElement('div');
+  d.className='lent'+(type?' '+type:'');
+  const n=new Date();
+  const ts=n.getHours().toString().padStart(2,'0')+':'+n.getMinutes().toString().padStart(2,'0')+':'+n.getSeconds().toString().padStart(2,'0');
+  d.textContent='['+ts+'] '+msg;
+  list.prepend(d);
+  while(list.children.length>60) list.lastChild.remove();
+}
+
+function showNotif(msg,type){
+  const d=document.createElement('div');
+  d.className='notif'+(type?' '+type:'');
+  d.textContent=msg;
+  document.getElementById('notifs').prepend(d);
+  setTimeout(()=>d.remove(),3000);
+}
+
+// ==========================================================
+// GAME LOOP
+// ==========================================================
+let animId;
+
+function loop(ts){
+  if(!G.running) return;
+  animId=requestAnimationFrame(loop);
+  const dt=Math.min((ts-(G.lt||ts))/1000,.1);
+  G.lt=ts;
+  G.elapsed+=dt;
+
+  // Arrow key camera pan (also WASD while not placing)
+  const panSpd = 600 * dt;
+  if(keys['ArrowLeft'])  { G.camX -= panSpd; clampCam(); }
+  if(keys['ArrowRight']) { G.camX += panSpd; clampCam(); }
+  if(keys['ArrowUp'])    { G.camY -= panSpd; clampCam(); }
+  if(keys['ArrowDown'])  { G.camY += panSpd; clampCam(); }
+
+  if(G.elapsed>=G.dur){endGame();return;}
+
+  G.waveTimer-=dt;
+  if(G.waveTimer<=0){G.waveTimer=120;spawnWave();}
+
+  tickLogistics(dt);
+  tickUnits(dt);
+  tickEnemies(dt);
+  tickProjs(dt);
+
+  updateHUD();
+  updateWaveHUD();
+  updateUnitList(dt);
+  render();
+  renderMinimap();
+  renderCompass();
+}
+
+// ==========================================================
+// INPUT
+// ==========================================================
+const keys={};
+let mouseOnCanvas=false;
+
+function setMode(m){
+  G.mode=m;G.placeType=null;
+  document.querySelectorAll('#bar .bitem').forEach(el=>{
+    el.classList.toggle('act',el.id==='tool_'+m);
+  });
+  document.getElementById('pbar').style.display='none';
+}
+
+function setPlace(type){
+  G.mode='place';G.placeType=type;
+  document.querySelectorAll('#bar .bitem').forEach(el=>{
+    el.classList.toggle('act',el.id==='pb_'+type);
+  });
+  const d=BDEFS[type];
+  document.getElementById('pbar').style.display='block';
+  document.getElementById('pbar').textContent=
+    `Placing: ${d.name}  (${d.size}×${d.size})  ·  $${d.cost}  ·  Build: ${d.buildTime}s  ·  [R] rotate  [ESC] cancel  ·  Dir: ${DIR_NAMES[G.placeDir]}`;
+}
+
+function rotateTool(){
+  G.placeDir=(G.placeDir+1)%4;
+  if(G.placeType){
+    const d=BDEFS[G.placeType];
+    document.getElementById('pbar').textContent=
+      `Placing: ${d.name}  ·  $${d.cost}  ·  Build: ${d.buildTime}s  ·  [R] rotate  [ESC] cancel  ·  Dir: ${DIR_NAMES[G.placeDir]}`;
+  }
+}
+
+function setupInput(){
+  document.addEventListener('keydown',e=>{
+    keys[e.code]=true;
+    if(e.code==='KeyR'){
+      if(G.mode==='select'){
+        // Try to rotate the block under the mouse cursor
+        const {x:gx,y:gy}=G.cell;
+        if(gx>=0&&gy>=0&&gx<WW&&gy<WH){
+          const b=G.bGrid[gy]?.[gx];
+          if(b && (b.type==='loader'||b.type==='unloader'||b.type==='track')){
+            b.dir=(b.dir+1)%4;
+            showNotif('Rotated '+BDEFS[b.type].name+' → '+DIR_NAMES[b.dir],'w');
+          }
+        }
+      } else {
+        rotateTool();
+      }
+    }
+    if(e.code==='Escape') setMode('select');
+    if(e.code==='KeyD') setMode('demolish');
+    if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.code)) e.preventDefault();
+  });
+  document.addEventListener('keyup',e=>{keys[e.code]=false;});
+
+  const wrap=document.getElementById('wrap');
+
+  wrap.addEventListener('contextmenu',e=>e.preventDefault());
+
+  wrap.addEventListener('mouseenter',()=>mouseOnCanvas=true);
+  wrap.addEventListener('mouseleave',()=>mouseOnCanvas=false);
+
+  wrap.addEventListener('mousedown',e=>{
+    if(e.button===1||e.button===2||keys['Space']){
+      G.panning=true;
+      G.panSX=e.clientX;G.panSY=e.clientY;
+      G.panCX=G.camX;G.panCY=G.camY;
+      e.preventDefault();return;
+    }
+    if(e.button===0){
+      const {x:gx,y:gy}=G.cell;
+      if(G.mode==='place'&&G.placeType){
+        placeBlock(G.placeType,gx,gy,G.placeDir);
+      } else if(G.mode==='demolish'){
+        if(gx>=0&&gy>=0&&gx<WW&&gy<WH){
+          const b=G.bGrid[gy]?.[gx];
+          if(b){ demolish(b); return; }
+          // Check for blueprint (build order) at this cell
+          const o=orderAtCell(gx,gy);
+          if(o){ cancelOrder(o); showNotif('Blueprint cancelled — refunded $'+BDEFS[o.type].cost,'w'); }
+        }
+      }
+    }
+  });
+
+  wrap.addEventListener('mousemove',e=>{
+    const rect=canvas.getBoundingClientRect();
+    G.mx=e.clientX-rect.left;G.my=e.clientY-rect.top;
+    G.cell={x:Math.floor((G.mx+G.camX)/(CELL*G.zoom)),y:Math.floor((G.my+G.camY)/(CELL*G.zoom))};
+
+    if(G.panning){
+      G.camX=G.panCX-(e.clientX-G.panSX);
+      G.camY=G.panCY-(e.clientY-G.panSY);
+      clampCam();
+    }
+    // Drag place
+    if(e.buttons===1&&G.mode==='place'&&G.placeType) placeBlock(G.placeType,G.cell.x,G.cell.y,G.placeDir);
+    if(e.buttons===1&&G.mode==='demolish'){
+      const b=G.bGrid[G.cell.y]?.[G.cell.x];
+      if(b){ demolish(b); }
+      else { const o=orderAtCell(G.cell.x,G.cell.y); if(o) cancelOrder(o); }
+    }
+  });
+
+  wrap.addEventListener('mouseup',e=>{
+    if(e.button===1||e.button===2) G.panning=false;
+    if(keys['Space']) G.panning=false;
+    if(e.button===0&&G.panning) G.panning=false;
+  });
+
+  wrap.addEventListener('wheel',e=>{
+    e.preventDefault();
+    const f=e.deltaY>0?.88:1/.88;
+    const oz=G.zoom;
+    G.zoom=Math.max(.35,Math.min(3,G.zoom*f));
+    const rect=canvas.getBoundingClientRect();
+    const mx=e.clientX-rect.left,my=e.clientY-rect.top;
+    G.camX=(G.camX+mx)*(G.zoom/oz)-mx;
+    G.camY=(G.camY+my)*(G.zoom/oz)-my;
+    clampCam();
+  },{passive:false});
+
+  // Minimap click to jump
+  document.getElementById('mmap').addEventListener('click',e=>{
+    const r=mc.getBoundingClientRect();
+    const mx=e.clientX-r.left,my=e.clientY-r.top;
+    const wx=mx/mc.width*WW,wy=my/mc.height*WH;
+    G.camX=wx*CELL*G.zoom-canvas.width/2;
+    G.camY=wy*CELL*G.zoom-canvas.height/2;
+    clampCam();
+  });
+}
+
+function clampCam(){
+  const cp=CELL*G.zoom;
+  G.camX=Math.max(-canvas.width*.3,Math.min(WW*cp-canvas.width*.7,G.camX));
+  G.camY=Math.max(-canvas.height*.3,Math.min(WH*cp-canvas.height*.7,G.camY));
+}
+
+function resizeCanvas(){
+  const wrap=document.getElementById('wrap');
+  canvas.width=wrap.clientWidth;canvas.height=wrap.clientHeight;
+  mc.width=mc.offsetWidth||150;mc.height=mc.offsetHeight||110;
+}
+
+// ==========================================================
+// GAME FLOW
+// ==========================================================
+let selDur=60;
+
+function pickTime(t){
+  selDur=t;
+  document.querySelectorAll('.tbtn').forEach(el=>el.classList.toggle('sel',+el.dataset.t===t));
+}
+
+function startGame(){
+  document.getElementById('menu').style.display='none';
+  document.getElementById('game').style.display='flex';
+
+  canvas=document.getElementById('gc');
+  ctx=canvas.getContext('2d');
+  mc=document.getElementById('mc');
+  mctx=mc.getContext('2d');
+  cc=document.getElementById('cc');
+  cctx=cc.getContext('2d');
+
+  resizeCanvas();
+  window.addEventListener('resize',resizeCanvas);
+
+  G=newState(selDur);
+  trackItems=[];
+  genWorld();
+
+  // Free starting units
+  G.units.push(makeUnit('soldier', G.spawnX-1.5, G.spawnY));
+  G.units.push(makeUnit('builder', G.spawnX+1.5, G.spawnY));
+
+  // Centre camera
+  const cp=CELL*G.zoom;
+  G.camX=G.spawnX*cp-canvas.width/2;
+  G.camY=G.spawnY*cp-canvas.height/2;
+
+  setupInput();
+  updateHUD();
+
+  addLog('⛏ Gold Rush started! Build your empire.','s');
+  addLog('💡 Click to place blueprints — your Builder walks over and constructs them.','');
+  addLog('💡 Coal Drills on dark patches · Gold Drills on gold patches.','');
+  addLog('💡 Unloader next to machine → Track → Loader into destination.','');
+  addLog('💡 Demolish mode cancels blueprints and refunds full cost.','');
+  showNotif('Gold Rush started! Good luck, Prospector.','s');
+
+  G.running=true;
+  requestAnimationFrame(loop);
+}
+
+function endGame(){
+  G.running=false;
+  cancelAnimationFrame(animId);
+  document.getElementById('go').style.display='flex';
+  document.getElementById('goMoney').textContent='$'+G.money.toLocaleString();
+  document.getElementById('goWave').textContent=G.waveNum;
+  document.getElementById('goBuilt').textContent=G.totalBuilt;
+  document.getElementById('goKills').textContent=G.kills;
+}
+
+function restartGame(){
+  cancelAnimationFrame(animId);
+  document.getElementById('go').style.display='none';
+  document.getElementById('wov').style.display='none';
+  document.getElementById('loglist').innerHTML='';
+  document.getElementById('notifs').innerHTML='';
+  G=newState(selDur);
+  trackItems=[];
+  genWorld();
+  // Free starting units
+  G.units.push(makeUnit('soldier', G.spawnX-1.5, G.spawnY));
+  G.units.push(makeUnit('builder', G.spawnX+1.5, G.spawnY));
+  const cp=CELL*G.zoom;
+  G.camX=G.spawnX*cp-canvas.width/2;
+  G.camY=G.spawnY*cp-canvas.height/2;
+  updateHUD();
+  addLog('⛏ New run started — good luck!','s');
+  G.running=true;
+  requestAnimationFrame(loop);
+}
+</script>
+</body>
+</html>
