@@ -101,8 +101,8 @@ body{background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;ov
 .utask{color:var(--text2);font-size:.65rem;font-family:'Share Tech Mono',monospace}
 .mbar{height:3px;background:var(--border);border-radius:2px;margin-top:2px;overflow:hidden}
 .mbarf{height:100%;border-radius:2px;transition:width .3s}
-.sprow{display:flex;gap:.4rem;margin-top:.45rem}
-.spbtn{flex:1;padding:.4rem .2rem;background:var(--panel2);border:1px solid var(--border);
+.sprow{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.45rem}
+.spbtn{flex:1;min-width:calc(33% - .3rem);padding:.4rem .2rem;background:var(--panel2);border:1px solid var(--border);
   border-radius:4px;color:var(--text);font-family:'Rajdhani',sans-serif;font-size:.72rem;
   font-weight:600;cursor:pointer;transition:all .12s;text-align:center}
 .spbtn:hover{border-color:var(--accent);color:var(--accent);background:rgba(240,165,0,.07)}
@@ -279,7 +279,7 @@ body{background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;ov
         </div>
         <div class="bitem" id="pb_loader" onclick="setPlace('loader')">
           <div class="bico" style="background:rgba(60,120,220,.18);color:#5599ff">▲</div>
-          <div class="binfo"><div class="bname">Loader</div><div class="bcost">$80</div><div class="bsize">1×1 · 3s build</div></div>
+          <div class="binfo"><div class="bname">Loader</div><div class="bcost">$80</div><div class="bsize">1×1 · optional · directs item into specific machine side</div></div>
         </div>
         <div class="bitem" id="pb_chest" onclick="setPlace('chest')">
           <div class="bico" style="background:rgba(120,80,40,.3);color:#b07040">📦</div>
@@ -571,6 +571,7 @@ function finalizeOrder(order){
     type:order.type, gx:order.gx, gy:order.gy, dir:order.dir, size:order.size,
     hp:d.hp, maxHp:d.hp,
     inv:{coal:0,rawGold:0,refinedGold:0},
+    _buf: null,
     fuel:0,
     active:false,
   };
@@ -645,20 +646,21 @@ function isTrackLike(b){
   return b && (b.type==='track'||b.type==='loader'||b.type==='unloader');
 }
 
-// BFS from (sx,sy) to find path ending at a loader cell.
-// Returns array of {x,y} cells or null if no path found.
-function bfsToLoader(sx, sy, fromDir){
-  // fromDir = direction we came FROM (so we don't go back)
-  const visited = new Set();
-  const start = {x:sx, y:sy, path:[{x:sx,y:sy}], fromDir};
-  const queue = [start];
-  visited.add(`${sx},${sy}`);
+// Set of block types that can receive items directly from track (no loader needed)
+// Block types that accept delivered items
+const RECV_TYPES = new Set(['chest','furnace','bank','goldVault','coalDrill','goldDrill','turret','pipeIn','ammoDep']);
+// Block types items travel through on track
+const TRAV_TYPES = new Set(['track','splitter','merger','pipeOut','loader','unloader']);
 
+// BFS from a track cell to find the nearest RECV or loader destination.
+function bfsTrack(sx, sy, fromDir){
+  const visited = new Set();
+  const queue = [{x:sx, y:sy, path:[{x:sx,y:sy}], fromDir}];
+  visited.add(`${sx},${sy}`);
   while(queue.length){
     const cur = queue.shift();
-    // Check all 4 neighbours
     for(let d=0;d<4;d++){
-      if(d === OPP[cur.fromDir]) continue; // never backtrack
+      if(d === OPP[cur.fromDir]) continue;
       const nx = cur.x+DIR_DX[d];
       const ny = cur.y+DIR_DY[d];
       if(nx<0||ny<0||nx>=WW||ny>=WH) continue;
@@ -666,41 +668,77 @@ function bfsToLoader(sx, sy, fromDir){
       if(visited.has(key)) continue;
       const nb = G.bGrid[ny][nx];
       if(!nb) continue;
-      if(nb.type==='track'||nb.type==='loader'||nb.type==='splitter'||nb.type==='merger'){
-        visited.add(key);
-        const newPath=[...cur.path,{x:nx,y:ny}];
-        if(nb.type==='loader'){
-          return newPath; // found a loader
-        }
+      visited.add(key);
+      const newPath=[...cur.path,{x:nx,y:ny}];
+      if(nb.type==='loader' || RECV_TYPES.has(nb.type)){
+        return newPath;
+      }
+      if(nb.type==='track'||nb.type==='splitter'||nb.type==='merger'){
         queue.push({x:nx,y:ny,path:newPath,fromDir:d});
       }
     }
   }
-  return null; // no loader reachable
+  return null;
+}
+const bfsToLoader = bfsTrack;
+
+// BFS-spawn starting from any cell (used when pushing through belt chains)
+function spawnItemFrom(sx, sy, fromDir, itemType){
+  const startCell = G.bGrid[sy]?.[sx];
+  if(!startCell) return false;
+  if(RECV_TYPES.has(startCell.type)){
+    deliverToBlock(startCell, itemType);
+    return true;
+  }
+  if(startCell.type==='loader'){
+    const dx=startCell.gx+DIR_DX[startCell.dir], dy=startCell.gy+DIR_DY[startCell.dir];
+    if(dx>=0&&dy>=0&&dx<WW&&dy<WH){
+      const dst=G.bGrid[dy][dx];
+      if(dst&&dst!==startCell){deliverToBlock(dst,itemType);return true;}
+    }
+    return false;
+  }
+  if(startCell.type==='track'||startCell.type==='splitter'||startCell.type==='merger'){
+    const path=bfsTrack(sx,sy,fromDir);
+    if(!path) return false;
+    trackItems.push({id:Math.random(),type:itemType,path,pathIdx:0,progress:0});
+    return true;
+  }
+  return false;
 }
 
-// Spawn a travelling item from an unloader's output cell
+// Move an item out of an unloader toward a destination
 function spawnItem(unloader, itemType){
-  // Unloader's output is the cell in its dir direction
   const exitX = unloader.gx + DIR_DX[unloader.dir];
   const exitY = unloader.gy + DIR_DY[unloader.dir];
   if(exitX<0||exitY<0||exitX>=WW||exitY>=WH) return false;
   const exitCell = G.bGrid[exitY][exitX];
-  if(!exitCell||(!['track','splitter','merger'].includes(exitCell.type))) return false;
+  if(!exitCell) return false;
 
-  // BFS to nearest loader (don't go back into the unloader)
-  const comeFrom = OPP[unloader.dir]; // we came from this direction relative to exitCell
-  const path = bfsToLoader(exitX, exitY, comeFrom);
-  if(!path) return false; // no loader found — item stays buffered
-
-  trackItems.push({
-    id: Math.random(),
-    type: itemType,
-    path,
-    pathIdx: 0,
-    progress: 0, // 0→1 across current cell to next
-  });
-  return true;
+  // Directly touching a receiver — instant delivery, no animation
+  if(RECV_TYPES.has(exitCell.type)){
+    deliverToBlock(exitCell, itemType);
+    return true;
+  }
+  // Directly touching a loader — deliver through it
+  if(exitCell.type==='loader'){
+    const destX=exitCell.gx+DIR_DX[exitCell.dir];
+    const destY=exitCell.gy+DIR_DY[exitCell.dir];
+    if(destX>=0&&destY>=0&&destX<WW&&destY<WH){
+      const dst=G.bGrid[destY][destX];
+      if(dst&&dst!==exitCell){deliverToBlock(dst,itemType);return true;}
+    }
+    return false;
+  }
+  // Track — spawn a travelling item
+  if(exitCell.type==='track'||exitCell.type==='splitter'||exitCell.type==='merger'){
+    const comeFrom = OPP[unloader.dir];
+    const path = bfsTrack(exitX, exitY, comeFrom);
+    if(!path) return false;
+    trackItems.push({id:Math.random(), type:itemType, path, pathIdx:0, progress:0});
+    return true;
+  }
+  return false;
 }
 
 // Advance all travelling items
@@ -713,20 +751,23 @@ function tickItems(dt){
       item.progress -= 1;
       item.pathIdx++;
       if(item.pathIdx >= item.path.length){
-        // Item fell off end — discard
         trackItems.splice(i,1);
         break;
       }
       const cell = item.path[item.pathIdx];
       const b = G.bGrid[cell.y]?.[cell.x];
       if(b && b.type==='loader'){
-        // Deliver to the block on the loader's output side
         const outX = b.gx + DIR_DX[b.dir];
         const outY = b.gy + DIR_DY[b.dir];
         if(outX>=0&&outY>=0&&outX<WW&&outY<WH){
           const dst = G.bGrid[outY][outX];
           if(dst && dst !== b) deliverToBlock(dst, item.type);
         }
+        trackItems.splice(i,1);
+        break;
+      }
+      if(b && RECV_TYPES.has(b.type)){
+        deliverToBlock(b, item.type);
         trackItems.splice(i,1);
         break;
       }
@@ -815,7 +856,7 @@ function tickBlock(b, dt){
           if(G.terrain[b.gy+dy][b.gx+dx]===T_COAL) onCoal=true;
       if(onCoal){
         b.active=true;
-        if(!pushOutput(b,'coal')) b.inv.coal=Math.min(b.inv.coal+1,200);
+        b.inv.coal=Math.min(b.inv.coal+1,200);
       }
     }
   }
@@ -830,7 +871,7 @@ function tickBlock(b, dt){
             if(G.terrain[b.gy+dy][b.gx+dx]===T_GOLD) onGold=true;
         if(onGold){
           b.active=true;
-          if(!pushOutput(b,'rawGold')) b.inv.rawGold=Math.min(b.inv.rawGold+1,200);
+          b.inv.rawGold=Math.min(b.inv.rawGold+1,200);
         }
       }
     } else { b.active=false; }
@@ -842,7 +883,7 @@ function tickBlock(b, dt){
         acc-=5;
         b.inv.rawGold--;
         b.active=true;
-        if(!pushOutput(b,'refinedGold')) b.inv.refinedGold=Math.min(b.inv.refinedGold+1,200);
+        b.inv.refinedGold=Math.min(b.inv.refinedGold+1,200);
       }
     } else { b.active=false; }
   }
@@ -941,23 +982,73 @@ function tickBlock(b, dt){
     } else if(!b.inv.refinedGold){ b.active=false; }
   }
   else if(b.type==='unloader'){
-    // Pull from the block on the unloader's INPUT side (opposite of dir)
-    if(acc>=0.8){
-      acc-=0.8;
-      const inDir = OPP[b.dir];
-      const inX = b.gx + DIR_DX[inDir];
-      const inY = b.gy + DIR_DY[inDir];
-      if(inX>=0&&inY>=0&&inX<WW&&inY<WH){
-        const src = G.bGrid[inY][inX];
-        if(src && src!==b && src.type!=='track' && src.type!=='loader' && src.type!=='unloader'){
-          const items=['rawGold','refinedGold','coal'];
-          for(const it of items){
-            if((src.inv[it]||0)>0){
-              src.inv[it]--;
-              const sent = spawnItem(b, it);
-              if(!sent) src.inv[it]++; // put it back if no route
-              break;
+    if(acc >= 0.5){
+      acc -= 0.5;
+      const BELT = new Set(['track','unloader','splitter','merger','loader']);
+      const outX = b.gx + DIR_DX[b.dir];
+      const outY = b.gy + DIR_DY[b.dir];
+      const inX  = b.gx + DIR_DX[OPP[b.dir]];
+      const inY  = b.gy + DIR_DY[OPP[b.dir]];
+
+      // PUSH: if we have a buffered item, try to deliver it forward
+      if(b._buf){
+        let pushed = false;
+        // Check the output cell AND all cells of any large block there
+        const tryDeliver = (cx, cy) => {
+          if(cx<0||cy<0||cx>=WW||cy>=WH) return false;
+          const dst = G.bGrid[cy][cx];
+          if(!dst || dst===b) return false;
+          if(dst.type==='unloader'){
+            if(!dst._buf){ dst._buf=b._buf; b._buf=null; return true; }
+            return false;
+          }
+          if(dst.type==='track'||dst.type==='splitter'||dst.type==='merger'){
+            const path=bfsTrack(cx,cy,OPP[b.dir]);
+            if(path){ trackItems.push({id:Math.random(),type:b._buf,path,pathIdx:0,progress:0}); b._buf=null; return true; }
+            return false;
+          }
+          if(dst.type==='loader'){
+            const ldX=dst.gx+DIR_DX[dst.dir],ldY=dst.gy+DIR_DY[dst.dir];
+            if(ldX>=0&&ldY>=0&&ldX<WW&&ldY<WH){
+              const ldst=G.bGrid[ldY][ldX];
+              if(ldst&&ldst!==dst){deliverToBlock(ldst,b._buf);b._buf=null;return true;}
             }
+            return false;
+          }
+          if(RECV_TYPES.has(dst.type)){
+            deliverToBlock(dst,b._buf); b._buf=null; return true;
+          }
+          return false;
+        };
+        // Try direct output cell, then also check neighbors of that cell (for large blocks)
+        if(!pushed) pushed = tryDeliver(outX, outY);
+        if(!pushed){
+          // Scan around output cell for a large block whose cells include outX/outY area
+          for(let dd=0;dd<4&&!pushed;dd++){
+            pushed = tryDeliver(outX+DIR_DX[dd], outY+DIR_DY[dd]);
+          }
+        }
+      }
+
+      // PULL: if buffer empty, grab from behind
+      if(!b._buf){
+        const src = inX>=0&&inY>=0&&inX<WW&&inY<WH ? G.bGrid[inY][inX] : null;
+        if(src && src!==b && !BELT.has(src.type)){
+          for(const it of ['coal','rawGold','refinedGold']){
+            if((src.inv[it]||0)>0){ src.inv[it]--; b._buf=it; break; }
+          }
+        }
+        // Also try cells around inX/inY (large blocks)
+        if(!b._buf){
+          for(let dd=0;dd<4;dd++){
+            const nx=inX+DIR_DX[dd], ny=inY+DIR_DY[dd];
+            if(nx<0||ny<0||nx>=WW||ny>=WH) continue;
+            const src2=G.bGrid[ny][nx];
+            if(!src2||src2===b||BELT.has(src2.type)) continue;
+            for(const it of ['coal','rawGold','refinedGold']){
+              if((src2.inv[it]||0)>0){ src2.inv[it]--; b._buf=it; break; }
+            }
+            if(b._buf) break;
           }
         }
       }
@@ -2288,15 +2379,14 @@ function drawBlock(b,cp){
     drawBar(ctx,sx+2,sy-5,pw-4,b.hp/b.maxHp,'#3ddc84',3);
   }
 
-  // Item count
-  const total=totalInv(b.inv);
-  if(total>0){
+  // Item count (skip for conveyor blocks)
+  const total=totalInv(b.inv) + (b._buf ? 1 : 0);
+  if(total>0 && b.type!=='unloader' && b.type!=='loader' && b.type!=='track'){
     ctx.fillStyle='rgba(255,255,255,.85)';
     ctx.font=`bold ${Math.max(8,cp*.28)}px 'Share Tech Mono',monospace`;
     ctx.textAlign='right';ctx.textBaseline='top';
     ctx.fillText(total,sx+pw-3,sy+3);
   }
-
   drawPortIndicators(ctx, b.type, b.dir, sx, sy, pw, ph, cp, b.size, 1.0);
 }
 
@@ -2346,67 +2436,10 @@ function drawPortIndicators(ctx, type, dir, sx, sy, pw, ph, cp, size, alpha){
     ctx.restore();
   };
 
-  const R='#ff4444', G2='#44dd66';
-
-  switch(type){
-    case 'coalDrill':
-      for(let s=0;s<4;s++) drawSideArrow(s,R); break;
-    case 'goldDrill':
-      for(let s=0;s<4;s++){ drawSideArrow(s,G2,0.96); drawSideArrow(s,R,0.74); } break;
-    case 'furnace':
-      for(let s=0;s<4;s++){ drawSideArrow(s,G2,0.96); drawSideArrow(s,R,0.74); } break;
-    case 'bank':
-      for(let s=0;s<4;s++) drawSideArrow(s,G2); break;
-    case 'chest':
-      for(let s=0;s<4;s++) drawSideArrow(s,G2); break;
-    case 'turret':
-      // Consumes coal (green input), no output
-      for(let s=0;s<4;s++) drawSideArrow(s,G2); break;
-    case 'ammoDep':
-      // Passive booster — no item ports, just proximity
-      break;
-    case 'goldVault':
-      // Input only (stores refined gold)
-      for(let s=0;s<4;s++) drawSideArrow(s,G2); break;
-    case 'pipeIn':
-      // Takes items from machine (green = machine side = OPP[dir])
-      drawDirArrow(dir);
-      drawSideArrow(OPP[dir],G2,0.92); // machine connects here
-      drawSideArrow(dir,'#44aaff',0.92); // teleport out this side (blue-tinted)
-      break;
-    case 'pipeOut':
-      // Outputs items to loaders (red = output side)
-      drawDirArrow(dir);
-      drawSideArrow(dir,R,0.92);          // items come out here
-      drawSideArrow(OPP[dir],'#44aaff',0.92); // teleport in from this side
-      break;
-    case 'unloader':
-      drawDirArrow(dir);
-      drawSideArrow(dir,R,0.92);
-      drawSideArrow(OPP[dir],G2,0.92);
-      break;
-    case 'loader':
-      drawDirArrow(dir);
-      drawSideArrow(dir,G2,0.92);
-      drawSideArrow(OPP[dir],R,0.92);
-      break;
-    case 'track':
-      drawDirArrow(dir); break;
-    case 'splitter':
-      drawDirArrow(dir);
-      drawSideArrow(dir,R,0.92);
-      drawSideArrow((dir+2)%4,R,0.92);
-      drawSideArrow(OPP[dir],G2,0.92);
-      break;
-    case 'merger':
-      drawDirArrow(dir);
-      // Output = b.dir (red), two inputs = the other three sides (green)
-      drawSideArrow(dir,R,0.92);
-      drawSideArrow(OPP[dir],G2,0.92);
-      drawSideArrow((dir+1)%4,G2,0.92);
-      drawSideArrow((dir+3)%4,G2,0.92);
-      break;
-    // wall, camp, bank: no directional ports that need arrows beyond what's above
+  // Only show blue direction arrow — no red/green side arrows
+  const DIRECTIONAL = new Set(['track','unloader','loader','splitter','merger','pipeIn','pipeOut']);
+  if(DIRECTIONAL.has(type)){
+    drawDirArrow(dir);
   }
   ctx.globalAlpha=1;
 }
@@ -2841,7 +2874,7 @@ function startGame(){
   addLog('⛏ Gold Rush started! Build your empire.','s');
   addLog('💡 Click to place blueprints — your Builder walks over and constructs them.','');
   addLog('💡 Coal Drills on dark patches · Gold Drills on gold patches.','');
-  addLog('💡 Unloader next to machine → Track → Loader into destination.','');
+  addLog('💡 Unloader next to machine → Track → Chest/Furnace/Bank (Loader optional).','');
   addLog('💡 Demolish mode cancels blueprints and refunds full cost.','');
   showNotif('Gold Rush started! Good luck, Prospector.','s');
 
